@@ -88,7 +88,14 @@ public class AuthServiceImpl implements AuthService {
     private MessageDto createMessage(UserResponse userResponse) {
         String message = """
                 Hello, %s!
-                We're glad to welcome you among our users. Registration completed successfully.
+                
+                Welcome to Task Tracker!
+                Your registration was successful, and your account is now ready to use.
+                
+                Start creating and managing your tasks to stay organized and productive.
+                
+                Best regards,
+                Task Tracker Team
                 """.formatted(userResponse.username());
 
         return new MessageDto(userResponse.email(), "Welcome to Task Tracker", message);

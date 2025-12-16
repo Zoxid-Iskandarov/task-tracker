@@ -2,7 +2,6 @@ package com.walking.backend.config;
 
 import com.walking.backend.domain.dto.kafka.MessageDto;
 import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.common.serialization.LongSerializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
