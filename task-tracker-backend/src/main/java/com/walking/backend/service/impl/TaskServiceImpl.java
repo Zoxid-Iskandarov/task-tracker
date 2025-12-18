@@ -5,16 +5,19 @@ import com.walking.backend.domain.dto.task.TaskResponse;
 import com.walking.backend.domain.exception.ObjectNotFoundException;
 import com.walking.backend.domain.model.Task;
 import com.walking.backend.repository.TaskRepository;
+import com.walking.backend.repository.specification.TaskSpecification;
 import com.walking.backend.service.TaskService;
 import com.walking.backend.service.UserService;
 import com.walking.backend.service.mapper.task.TaskRequestMapper;
 import com.walking.backend.service.mapper.task.TaskResponseMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -27,8 +30,18 @@ public class TaskServiceImpl implements TaskService {
     private final TaskResponseMapper taskResponseMapper;
 
     @Override
-    public List<TaskResponse> getUserTasks(Long userId) {
-        return taskResponseMapper.toDtos(taskRepository.findAllTasksByUserId(userId));
+    public Page<TaskResponse> getTasks(Long userId, Boolean completed, Boolean today, Pageable pageable) {
+        Specification<Task> spec = Specification.where(TaskSpecification.hasUserId(userId));
+
+        if (completed != null) {
+            spec = spec.and(TaskSpecification.isCompleted(completed));
+        }
+        if (Boolean.TRUE.equals(today)) {
+            spec = spec.and(TaskSpecification.hasTodayFlag());
+        }
+
+        return taskRepository.findAll(spec, pageable)
+                .map(taskResponseMapper::toDto);
     }
 
     @Override

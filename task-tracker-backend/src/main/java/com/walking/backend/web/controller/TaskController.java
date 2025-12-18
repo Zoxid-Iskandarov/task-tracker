@@ -5,13 +5,13 @@ import com.walking.backend.domain.dto.task.TaskResponse;
 import com.walking.backend.security.CustomUserDetails;
 import com.walking.backend.service.TaskService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/tasks")
@@ -20,8 +20,11 @@ public class TaskController {
     private final TaskService taskService;
 
     @GetMapping
-    public ResponseEntity<List<TaskResponse>> getUserTasks(@AuthenticationPrincipal CustomUserDetails userDetails) {
-        return ResponseEntity.ok(taskService.getUserTasks(userDetails.id()));
+    public ResponseEntity<Page<TaskResponse>> getTasks(@AuthenticationPrincipal CustomUserDetails userDetails,
+                                                       @RequestParam(required = false) Boolean completed,
+                                                       @RequestParam(required = false) Boolean today,
+                                                       Pageable pageable) {
+        return ResponseEntity.ok(taskService.getTasks(userDetails.id(), completed, today, pageable));
     }
 
     @PostMapping

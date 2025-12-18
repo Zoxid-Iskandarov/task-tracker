@@ -2,12 +2,12 @@ package com.walking.backend.service;
 
 import com.walking.backend.domain.dto.task.TaskRequest;
 import com.walking.backend.domain.dto.task.TaskResponse;
-
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface TaskService {
 
-    List<TaskResponse> getUserTasks(Long userId);
+    Page<TaskResponse> getTasks(Long userId, Boolean completed, Boolean today, Pageable pageable);
 
     TaskResponse createTask(TaskRequest taskRequest, Long userId);
 
