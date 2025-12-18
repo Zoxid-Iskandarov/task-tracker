@@ -9,6 +9,11 @@ spring:
     consumer:
       bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
       group-id: email-sender-group
+      properties:
+        spring:
+          json:
+            trusted.packages: com.walking.backend.domain.dto.MessageDto,com.walking.scheduler.domain.dto.MessageDto
+            type.mapping: MessageDto:com.walking.emailSender.dto.MessageDto
   mail:
     host: ${MAIL_HOST}
     port: ${MAIL_PORT}

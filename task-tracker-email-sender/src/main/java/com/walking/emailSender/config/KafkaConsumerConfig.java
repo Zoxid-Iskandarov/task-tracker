@@ -26,22 +26,26 @@ public class KafkaConsumerConfig {
     @Bean
     public ConsumerFactory<String, Object> consumerFactory(
             @Value("${spring.kafka.consumer.bootstrap-servers}") String bootstrapServers,
-            @Value("${spring.kafka.consumer.group-id}") String groupId) {
+            @Value("${spring.kafka.consumer.group-id}") String groupId,
+            @Value("${spring.kafka.consumer.properties.spring.json.trusted.packages}") String trustedPackages,
+            @Value("${spring.kafka.consumer.properties.spring.json.type.mapping}") String typeMappings
+    ) {
         Map<String, Object> configs = new HashMap<>();
         configs.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         configs.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
         configs.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         configs.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
         configs.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, JacksonJsonDeserializer.class);
-        configs.put(JacksonJsonDeserializer.TYPE_MAPPINGS, "MessageDto:com.walking.emailSender.dto.MessageDto");
-        configs.put(JacksonJsonDeserializer.TRUSTED_PACKAGES, "com.walking.backend.domain.dto");
+        configs.put(JacksonJsonDeserializer.TRUSTED_PACKAGES, trustedPackages);
+        configs.put(JacksonJsonDeserializer.TYPE_MAPPINGS, typeMappings);
 
         return new DefaultKafkaConsumerFactory<>(configs);
     }
 
     @Bean
     public ProducerFactory<String, Object> producerFactory(
-            @Value("${spring.kafka.producer.bootstrap-servers}") String bootstrapServers) {
+            @Value("${spring.kafka.producer.bootstrap-servers}") String bootstrapServers
+    ) {
         Map<String, Object> configs = new HashMap<>();
         configs.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         configs.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);

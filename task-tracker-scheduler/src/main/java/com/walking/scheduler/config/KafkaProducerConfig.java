@@ -1,6 +1,6 @@
-package com.walking.backend.config;
+package com.walking.scheduler.config;
 
-import com.walking.backend.domain.dto.kafka.MessageDto;
+import com.walking.scheduler.domain.dto.MessageDto;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Value;

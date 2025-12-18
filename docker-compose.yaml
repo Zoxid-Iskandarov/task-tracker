@@ -9,12 +9,14 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgres/data
+
   redis:
     image: redis:8-alpine
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
+
   kafka-1:
     image: apache/kafka:4.1.1
     ports:
@@ -31,6 +33,7 @@ services:
       KAFKA_CLUSTER_ID: ttV9Gm1jT1e3x8QwA6dA2P
     volumes:
       - kafka-1-data:/var/lib/kafka/data
+
   kafka-2:
     image: apache/kafka:4.1.1
     ports:
@@ -47,6 +50,7 @@ services:
       KAFKA_CLUSTER_ID: ttV9Gm1jT1e3x8QwA6dA2P
     volumes:
       - kafka-2-data:/var/lib/kafka/data
+
   kafka-3:
     image: apache/kafka:4.1.1
     ports:
@@ -63,6 +67,7 @@ services:
       KAFKA_CLUSTER_ID: ttV9Gm1jT1e3x8QwA6dA2P
     volumes:
       - kafka-3-data:/var/lib/kafka/data
+
 volumes:
   postgres_data:
   redis_data:

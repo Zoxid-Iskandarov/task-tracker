@@ -1,6 +1,8 @@
+server:
+  port: 0
 spring:
   application:
-    name: task-tracker-backend
+    name: task-tracker-scheduler
   datasource:
     driver-class-name: org.postgresql.Driver
     url: ${DB_URL}
@@ -14,10 +16,6 @@ spring:
         show_sql: true
         format_sql: true
     open-in-view: false
-  data:
-    redis:
-      port: ${REDIS_PORT}
-      host: ${REDIS_HOST}
   kafka:
     producer:
       bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
@@ -25,15 +23,6 @@ spring:
       properties:
         spring:
           json:
-            type.mapping: MessageDto:com.walking.backend.domain.dto.kafka.MessageDto
-security:
-  jwt:
-    secret: ${JWT_SECRET}
-    access_token_expiration: 30
-    refresh_token_expiration: 300
-    redis:
-      access_token_prefix: 'access:token:'
-      refresh_token_prefix: 'refresh:token:'
-      user_token_prefix: 'user:tokens:'
+            type.mapping: MessageDto:com.walking.scheduler.domain.dto.MessageDto
 kafka:
   topic-name: EMAIL_SENDING_TASKS
