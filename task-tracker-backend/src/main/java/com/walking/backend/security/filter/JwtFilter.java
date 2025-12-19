@@ -30,7 +30,7 @@ public class JwtFilter extends OncePerRequestFilter {
     private final CustomUserDetailsService userDetailsService;
 
     private static final List<String> UNSECURED_URL = List.of(
-            "/auth/sign-up", "/auth/sign-in", "/auth/refresh-tokens"
+            "/auth/sign-up", "/auth/sign-in", "/auth/refresh"
     );
 
     @Override

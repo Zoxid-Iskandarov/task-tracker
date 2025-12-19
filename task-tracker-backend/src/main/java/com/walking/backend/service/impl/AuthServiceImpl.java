@@ -13,7 +13,7 @@ import com.walking.backend.service.KafkaProducerService;
 import com.walking.backend.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpHeaders;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.AuthenticationException;
@@ -29,6 +29,9 @@ public class AuthServiceImpl implements AuthService {
     private final JwtService jwtService;
     private final KafkaProducerService kafkaProducerService;
     private final AuthenticationManager authenticationManager;
+
+    @Value("${security.jwt.header.refresh-token}")
+    private final String refreshHeader;
 
     @Override
     @Transactional
@@ -56,17 +59,16 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthResponse refreshTokens(HttpServletRequest request) {
-        String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
+        String refreshToken = request.getHeader(refreshHeader);
 
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+        if (refreshToken == null || refreshToken.isBlank()) {
             throw new AuthException("Refresh token not transformed");
         }
 
-        String token = authHeader.substring(7);
-        String username = jwtService.extractUsername(token);
+        String username = jwtService.extractUsername(refreshToken);
         UserResponse userResponse = userService.getUserByUsername(username);
 
-        if (!jwtService.isValidRefreshToken(token, userResponse.username(), userResponse.id())) {
+        if (!jwtService.isValidRefreshToken(refreshToken, userResponse.username(), userResponse.id())) {
             throw new AuthException("Refresh token is revoked");
         }
 

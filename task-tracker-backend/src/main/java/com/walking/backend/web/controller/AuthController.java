@@ -39,7 +39,7 @@ public class AuthController {
                 .body(authResponse);
     }
 
-    @PostMapping("/refresh-tokens")
+    @PostMapping("/refresh")
     public ResponseEntity<AuthResponse> refreshTokens(HttpServletRequest request) {
         AuthResponse authResponse = authService.refreshTokens(request);
 
