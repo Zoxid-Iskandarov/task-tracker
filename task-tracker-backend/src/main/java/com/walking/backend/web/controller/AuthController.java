@@ -4,6 +4,7 @@ import com.walking.backend.domain.dto.auth.AuthResponse;
 import com.walking.backend.domain.dto.auth.SignInRequest;
 import com.walking.backend.domain.dto.auth.SignUpRequest;
 import com.walking.backend.service.AuthService;
+import com.walking.backend.web.openapi.AuthApi;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -18,9 +19,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
-public class AuthController {
+public class AuthController implements AuthApi {
     private final AuthService authService;
 
+    @Override
     @PostMapping("/sign-up")
     public ResponseEntity<AuthResponse> signUp(@RequestBody @Validated SignUpRequest signUpRequest) {
         AuthResponse authResponse = authService.singUp(signUpRequest);
@@ -30,6 +32,7 @@ public class AuthController {
                 .body(authResponse);
     }
 
+    @Override
     @PostMapping("/sign-in")
     public ResponseEntity<AuthResponse> signIn(@RequestBody @Validated SignInRequest signInRequest) {
         AuthResponse authResponse = authService.signIn(signInRequest);
@@ -39,6 +42,7 @@ public class AuthController {
                 .body(authResponse);
     }
 
+    @Override
     @PostMapping("/refresh")
     public ResponseEntity<AuthResponse> refreshTokens(HttpServletRequest request) {
         AuthResponse authResponse = authService.refreshTokens(request);

@@ -28,6 +28,8 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-liquibase'
     implementation 'org.springframework.boot:spring-boot-starter-kafka'
 
+    implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:$springDocOpenApiVersion"
+
     annotationProcessor "org.hibernate:hibernate-jpamodelgen:$jpamodelgenVersion"
 
     implementation "org.mapstruct:mapstruct:$mapstructVersion"
