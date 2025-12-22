@@ -51,4 +51,11 @@ public class AuthController implements AuthApi {
                 .header(HttpHeaders.AUTHORIZATION, authResponse.accessToken())
                 .body(authResponse);
     }
+
+    @Override
+    @PostMapping("/sign-out")
+    public ResponseEntity<Void> signOut() {
+        // This method is intercepted by Spring Security Logout Filter
+        return ResponseEntity.ok().build();
+    }
 }

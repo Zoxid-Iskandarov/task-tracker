@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
@@ -50,4 +51,15 @@ public interface AuthApi {
             @ApiResponse(responseCode = "401", description = "Invalid refresh token")
     })
     ResponseEntity<AuthResponse> refreshTokens(HttpServletRequest request);
+
+    @Operation(
+            summary = "Log out user",
+            description = "Invalidates the session by deleting all user tokens. Requires a valid Access Token."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Successfully logged out"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or missing token")
+    })
+    @SecurityRequirement(name = "Bearer Authentication")
+    ResponseEntity<Void> signOut();
 }
