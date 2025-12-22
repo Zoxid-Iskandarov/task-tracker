@@ -26,3 +26,5 @@ spring:
             type.mapping: MessageDto:com.walking.scheduler.domain.dto.MessageDto
 kafka:
   topic-name: EMAIL_SENDING_TASKS
+scheduler:
+  cron: '0 0 0 * * *'

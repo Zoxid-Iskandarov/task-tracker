@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 public class ReportScheduler {
     private final ReportGeneratorService reportGeneratorService;
 
-    @Scheduled(cron = "0 0 0 * * *")
+    @Scheduled(cron = "${scheduler.cron}")
     public void scheduleDailyReport() {
         reportGeneratorService.generateDailyReport();
     }
