@@ -5,9 +5,9 @@ spring:
     name: task-tracker-email-sender
   kafka:
     producer:
-      bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+      bootstrap-servers: localhost:9092
     consumer:
-      bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+      bootstrap-servers: localhost:9092
       group-id: email-sender-group
       properties:
         spring:

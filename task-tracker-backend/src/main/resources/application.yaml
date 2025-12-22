@@ -3,9 +3,9 @@ spring:
     name: task-tracker-backend
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: ${DB_URL}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    url: jdbc:postgresql://localhost:5432/task_tracker_db
+    username: postgres
+    password: postgres
   jpa:
     hibernate:
       ddl-auto: validate
@@ -16,11 +16,11 @@ spring:
     open-in-view: false
   data:
     redis:
-      port: ${REDIS_PORT}
-      host: ${REDIS_HOST}
+      host: localhost
+      port: 6379
   kafka:
     producer:
-      bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+      bootstrap-servers: localhost:9092
       acks: all
       properties:
         spring:

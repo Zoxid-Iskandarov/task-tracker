@@ -74,9 +74,8 @@ public class KafkaConsumerConfig {
     @Bean
     public NewTopic createTopic(@Value("${kafka.topic-name}") String topic) {
         return TopicBuilder.name(topic)
-                .partitions(3)
-                .replicas(3)
-                .config("min.insync.replicas", "2")
+                .partitions(1)
+                .replicas(1)
                 .build();
     }
 }
