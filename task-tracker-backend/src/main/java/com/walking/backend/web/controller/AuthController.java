@@ -25,7 +25,7 @@ public class AuthController implements AuthApi {
     @Override
     @PostMapping("/sign-up")
     public ResponseEntity<AuthResponse> signUp(@RequestBody @Validated SignUpRequest signUpRequest) {
-        AuthResponse authResponse = authService.singUp(signUpRequest);
+        AuthResponse authResponse = authService.signUp(signUpRequest);
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .header(HttpHeaders.AUTHORIZATION, authResponse.accessToken())

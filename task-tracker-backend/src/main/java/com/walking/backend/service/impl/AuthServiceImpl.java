@@ -35,7 +35,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public AuthResponse singUp(SignUpRequest signUpRequest) {
+    public AuthResponse signUp(SignUpRequest signUpRequest) {
         UserResponse userResponse = userService.createUser(signUpRequest);
         kafkaProducerService.sendMessageDto(userResponse.id().toString(), createMessage(userResponse));
 

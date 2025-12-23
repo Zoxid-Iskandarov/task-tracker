@@ -7,7 +7,7 @@ import jakarta.servlet.http.HttpServletRequest;
 
 public interface AuthService {
 
-    AuthResponse singUp(SignUpRequest signUpRequest);
+    AuthResponse signUp(SignUpRequest signUpRequest);
 
     AuthResponse signIn(SignInRequest signInRequest);
 
