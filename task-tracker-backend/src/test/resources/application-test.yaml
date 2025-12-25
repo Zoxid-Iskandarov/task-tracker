@@ -1,0 +1,3 @@
+security:
+  jwt:
+    secret: 769783393f00a7684ff30000de89a34a0315b8d48f2450baf01b68850df5bbe1
