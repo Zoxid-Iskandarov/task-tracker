@@ -1,8 +1,8 @@
 INSERT INTO users (id, username, email, password)
 VALUES (1, 'Zoxka', 'san781617@gmail.com',
-        '{bcrypt}$2a$12$kUP8GVW9EhV0XT8t.vRuwuv.iV0HdFapVkSZaQ8rGUJtDv9RfUST.'), --Zox617
+        '$2a$10$YYaAaFP54K74pbaXJj36d.KlNcBKXTwqT71qEndV.hSGc5TVDTsdS'), --Zox617
        (2, 'Ivan', 'ivan99@gmail.com',
-        '{bcrypt}$2a$12$f3GUsJH5lUur7OfHVKvGJ.xYsj0QpBjYDZ/8v68KPdsBwvg4N2SUW'); --Ivan99
+        '$2a$10$EaZaBaEkswJl939P1D.iJ.uY7yOA0X.XP5/ojImDx.h9..xCudCDW'); --Ivan99
 
 SELECT setval('users_id_seq', 2);
 
