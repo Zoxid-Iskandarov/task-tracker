@@ -1,38 +1,20 @@
 package com.walking.backend.integration.controller;
 
+import com.walking.backend.integration.IntegrationTestBase;
 import com.walking.backend.integration.annotation.WithMockUser;
+import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.transaction.annotation.Transactional;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest
-@ActiveProfiles("test")
-@Testcontainers
-@Sql(scripts = "classpath:sql/data.sql")
-@Transactional
-@AutoConfigureMockMvc
 @WithMockUser
-public class TaskControllerIT {
-    @Container
-    @ServiceConnection
-    static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine");
-
-    @Autowired
-    private MockMvc mockMvc;
+@RequiredArgsConstructor
+public class TaskControllerIT extends IntegrationTestBase {
+    private final MockMvc mockMvc;
 
     @Test
     void getTasks_whenOnlyUserIdProvided_returnTasks() throws Exception {

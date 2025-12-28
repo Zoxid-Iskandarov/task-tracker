@@ -1,56 +1,31 @@
 package com.walking.backend.integration.service;
 
-import com.redis.testcontainers.RedisContainer;
 import com.walking.backend.domain.dto.auth.AuthResponse;
 import com.walking.backend.domain.dto.auth.SignInRequest;
 import com.walking.backend.domain.dto.auth.SignUpRequest;
 import com.walking.backend.domain.dto.kafka.MessageDto;
 import com.walking.backend.domain.exception.AuthException;
 import com.walking.backend.domain.exception.DuplicateException;
+import com.walking.backend.integration.IntegrationTestBase;
 import com.walking.backend.service.AuthService;
 import com.walking.backend.service.KafkaProducerService;
+import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.context.jdbc.Sql;
-import org.springframework.transaction.annotation.Transactional;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-@SpringBootTest
-@ActiveProfiles("test")
-@Testcontainers
-@Sql(scripts = "classpath:sql/data.sql")
-@Transactional
-public class AuthServiceIT {
+@RequiredArgsConstructor
+public class AuthServiceIT extends IntegrationTestBase {
+    @Value("${security.jwt.header.refresh-token}")
+    private final String refreshHeader;
+    private final AuthService authService;
+    private final KafkaProducerService kafkaProducerService;
+
     private static final String USERNAME = "Zoxka";
     private static final String PASSWORD = "Zox617";
-
-    @Container
-    @ServiceConnection
-    static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine");
-
-    @Container
-    @ServiceConnection
-    static final RedisContainer redis = new RedisContainer("redis:8-alpine");
-
-    @MockitoBean
-    private KafkaProducerService kafkaProducerService;
-
-    @Value("${security.jwt.header.refresh-token}")
-    private String refreshHeader;
-
-    @Autowired
-    private AuthService authService;
 
     @Test
     void signUp_whenValidRequestData_returnAuthResponse() {

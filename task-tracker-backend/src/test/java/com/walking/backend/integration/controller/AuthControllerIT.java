@@ -1,63 +1,32 @@
 package com.walking.backend.integration.controller;
 
-import com.redis.testcontainers.RedisContainer;
 import com.walking.backend.domain.dto.auth.AuthResponse;
 import com.walking.backend.domain.dto.auth.SignInRequest;
+import com.walking.backend.integration.IntegrationTestBase;
 import com.walking.backend.integration.annotation.WithMockUser;
 import com.walking.backend.service.AuthService;
-import com.walking.backend.service.KafkaProducerService;
+import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.transaction.annotation.Transactional;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest
-@ActiveProfiles("test")
-@Testcontainers
-@Sql(scripts = "classpath:sql/data.sql")
-@Transactional
-@AutoConfigureMockMvc
 @WithMockUser
-public class AuthControllerIT {
+@RequiredArgsConstructor
+public class AuthControllerIT extends IntegrationTestBase {
+    @Value("${security.jwt.header.refresh-token}")
+    private final String refreshHeader;
+    private final AuthService authService;
+    private final MockMvc mockMvc;
+
     private static final String USERNAME = "Zoxka";
     private static final String EMAIL = "san781617@gmail.com";
     private static final String PASSWORD = "Zox617";
-
-    @Container
-    @ServiceConnection
-    static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine");
-
-    @Container
-    @ServiceConnection
-    static final RedisContainer redis = new RedisContainer("redis:8-alpine");
-
-    @MockitoBean
-    private KafkaProducerService kafkaProducerService;
-
-    @Autowired
-    private AuthService authService;
-
-    @Value("${security.jwt.header.refresh-token}")
-    private String refreshHeader;
-
-    @Autowired
-    private MockMvc mockMvc;
 
     @Test
     void signUp_whenValidRequestData_returnAuthResponse() throws Exception {

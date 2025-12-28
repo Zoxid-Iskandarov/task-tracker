@@ -3,47 +3,30 @@ package com.walking.backend.integration.service;
 import com.walking.backend.domain.dto.task.TaskRequest;
 import com.walking.backend.domain.dto.task.TaskResponse;
 import com.walking.backend.domain.exception.ObjectNotFoundException;
+import com.walking.backend.integration.IntegrationTestBase;
 import com.walking.backend.integration.annotation.WithMockUser;
 import com.walking.backend.repository.TaskRepository;
 import com.walking.backend.service.TaskService;
+import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.jdbc.Sql;
-import org.springframework.transaction.annotation.Transactional;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@SpringBootTest
-@ActiveProfiles("test")
-@Testcontainers
-@Sql(scripts = "classpath:sql/data.sql")
-@Transactional
 @WithMockUser
-public class TaskServiceIT {
+@RequiredArgsConstructor
+public class TaskServiceIT extends IntegrationTestBase {
+    private final TaskService taskService;
+    private final TaskRepository taskRepository;
+
     private static final Long TASK_ID = 1L;
     private static final Long USER_ID = 1L;
-
-    @Container
-    @ServiceConnection
-    static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine");
-
-    @Autowired
-    private TaskRepository taskRepository;
-
-    @Autowired
-    private TaskService taskService;
 
     @Test
     void getTasks_whenOnlyUserIdProvided_returnTasks() {

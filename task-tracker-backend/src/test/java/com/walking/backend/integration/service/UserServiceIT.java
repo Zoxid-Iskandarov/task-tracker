@@ -5,45 +5,25 @@ import com.walking.backend.domain.dto.user.UserResponse;
 import com.walking.backend.domain.exception.DuplicateException;
 import com.walking.backend.domain.exception.ObjectNotFoundException;
 import com.walking.backend.domain.model.User;
+import com.walking.backend.integration.IntegrationTestBase;
 import com.walking.backend.repository.UserRepository;
 import com.walking.backend.service.UserService;
+import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.jdbc.Sql;
-import org.springframework.transaction.annotation.Transactional;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest
-@ActiveProfiles("test")
-@Testcontainers
-@Sql(scripts = "classpath:sql/data.sql")
-@Transactional
-public class UserServiceIT {
+@RequiredArgsConstructor
+public class UserServiceIT extends IntegrationTestBase {
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final UserService userService;
+
     private static final Long USER_ID = 1L;
     private static final String USERNAME = "Zoxka";
     private static final String EMAIL = "san781617@gmail.com";
-
-    @Container
-    @ServiceConnection
-    static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine");
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-
-    @Autowired
-    private UserService userService;
 
     @Test
     void getUserByUsername_whenUserExists_returnUserResponse() {
