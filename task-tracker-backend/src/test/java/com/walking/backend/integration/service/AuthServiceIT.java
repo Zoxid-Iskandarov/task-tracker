@@ -10,6 +10,7 @@ import com.walking.backend.integration.IntegrationTestBase;
 import com.walking.backend.service.AuthService;
 import com.walking.backend.service.KafkaProducerService;
 import lombok.RequiredArgsConstructor;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -27,10 +28,14 @@ public class AuthServiceIT extends IntegrationTestBase {
     private static final String USERNAME = "Zoxka";
     private static final String PASSWORD = "Zox617";
 
+    @BeforeEach
+    void setUp() {
+        doNothing().when(kafkaProducerService).sendMessageDto(anyString(), any(MessageDto.class));
+    }
+
     @Test
     void signUp_whenValidRequestData_returnAuthResponse() {
         SignUpRequest signUpRequest = new SignUpRequest("Sveta", "sveta@gmail.com", "Sveta123");
-
         AuthResponse authResponse = authService.signUp(signUpRequest);
 
         assertThat(authResponse).isNotNull();

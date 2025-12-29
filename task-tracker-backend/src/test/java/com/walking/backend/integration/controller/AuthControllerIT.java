@@ -2,10 +2,13 @@ package com.walking.backend.integration.controller;
 
 import com.walking.backend.domain.dto.auth.AuthResponse;
 import com.walking.backend.domain.dto.auth.SignInRequest;
+import com.walking.backend.domain.dto.kafka.MessageDto;
 import com.walking.backend.integration.IntegrationTestBase;
 import com.walking.backend.integration.annotation.WithMockUser;
 import com.walking.backend.service.AuthService;
+import com.walking.backend.service.KafkaProducerService;
 import lombok.RequiredArgsConstructor;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -13,6 +16,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doNothing;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -22,11 +28,17 @@ public class AuthControllerIT extends IntegrationTestBase {
     @Value("${security.jwt.header.refresh-token}")
     private final String refreshHeader;
     private final AuthService authService;
+    private final KafkaProducerService kafkaProducerService;
     private final MockMvc mockMvc;
 
     private static final String USERNAME = "Zoxka";
     private static final String EMAIL = "san781617@gmail.com";
     private static final String PASSWORD = "Zox617";
+
+    @BeforeEach
+    void setUp() {
+        doNothing().when(kafkaProducerService).sendMessageDto(anyString(), any(MessageDto.class));
+    }
 
     @Test
     void signUp_whenValidRequestData_returnAuthResponse() throws Exception {

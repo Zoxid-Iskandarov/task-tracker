@@ -1,3 +1,13 @@
+spring:
+  kafka:
+    consumer:
+      group-id: test-group
+      auto-offset-reset: earliest
+      properties:
+        spring:
+          json:
+            trusted.packages: com.walking.backend.domain.dto.kafka.MessageDto
+            type.mapping: MessageDto:com.walking.backend.domain.dto.kafka.MessageDto
 security:
   jwt:
     secret: 769783393f00a7684ff30000de89a34a0315b8d48f2450baf01b68850df5bbe1
