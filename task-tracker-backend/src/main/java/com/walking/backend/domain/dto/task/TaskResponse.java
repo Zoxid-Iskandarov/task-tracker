@@ -18,6 +18,8 @@ public record TaskResponse(
         @Schema(description = "Completion status flag", example = "false")
         Boolean isCompleted,
 
+        Long sectionId,
+
         @Schema(description = "Task creation timestamp", example = "2025-12-20T10:00:00")
         LocalDateTime created,
 

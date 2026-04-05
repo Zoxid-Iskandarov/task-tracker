@@ -20,5 +20,7 @@ public record TaskRequest(
                 example = "Milk, eggs, bread, and some fruits"
         )
         @Size(max = 5000, message = "Description cannot exceed 5000 characters")
-        String description) {
+        String description,
+
+        Long sectionId) {
 }
