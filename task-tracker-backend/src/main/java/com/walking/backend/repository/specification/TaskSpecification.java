@@ -1,26 +1,16 @@
 package com.walking.backend.repository.specification;
 
+import com.walking.backend.domain.model.Section_;
 import com.walking.backend.domain.model.Task;
 import com.walking.backend.domain.model.Task_;
-import com.walking.backend.domain.model.User_;
+import lombok.experimental.UtilityClass;
 import org.springframework.data.jpa.domain.Specification;
 
-import java.time.LocalDateTime;
-
+@UtilityClass
 public class TaskSpecification {
 
-    public static Specification<Task> hasUserId(Long userId) {
-        return (root, query, cb)
-                -> cb.equal(root.get(Task_.user).get(User_.id), userId);
-    }
-
-    public static Specification<Task> isCompleted(Boolean completed) {
-        return (root, query, cb)
-                -> cb.equal(root.get(Task_.isCompleted), completed);
-    }
-
-    public static Specification<Task> hasTodayFlag() {
-        return (root, query, cb)
-                -> cb.greaterThanOrEqualTo(root.get(Task_.created), LocalDateTime.now().toLocalDate().atStartOfDay());
+    public static Specification<Task> hasSectionId(Long sectionId) {
+        return (root, query, cb) ->
+                cb.equal(root.get(Task_.section).get(Section_.id), sectionId);
     }
 }
