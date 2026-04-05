@@ -6,8 +6,8 @@ import com.walking.backend.domain.exception.ObjectNotFoundException;
 import com.walking.backend.domain.model.Task;
 import com.walking.backend.repository.TaskRepository;
 import com.walking.backend.repository.specification.TaskSpecification;
+import com.walking.backend.service.SectionService;
 import com.walking.backend.service.TaskService;
-import com.walking.backend.service.UserService;
 import com.walking.backend.service.mapper.task.TaskRequestMapper;
 import com.walking.backend.service.mapper.task.TaskResponseMapper;
 import lombok.RequiredArgsConstructor;
@@ -24,21 +24,15 @@ import java.util.Optional;
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class TaskServiceImpl implements TaskService {
+    private final SectionService sectionService;
     private final TaskRepository taskRepository;
-    private final UserService userService;
     private final TaskRequestMapper taskRequestMapper;
     private final TaskResponseMapper taskResponseMapper;
 
     @Override
-    public Page<TaskResponse> getTasks(Long userId, Boolean completed, Boolean today, Pageable pageable) {
-        Specification<Task> spec = Specification.where(TaskSpecification.hasUserId(userId));
-
-        if (completed != null) {
-            spec = spec.and(TaskSpecification.isCompleted(completed));
-        }
-        if (Boolean.TRUE.equals(today)) {
-            spec = spec.and(TaskSpecification.hasTodayFlag());
-        }
+    @PreAuthorize("@resourceAccessService.isOwnerOfSection(#sectionId, principal.id)")
+    public Page<TaskResponse> getTasks(Long sectionId, Pageable pageable) {
+        Specification<Task> spec = Specification.where(TaskSpecification.hasSectionId(sectionId));
 
         return taskRepository.findAll(spec, pageable)
                 .map(taskResponseMapper::toDto);
@@ -46,25 +40,31 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     @Transactional
-    public TaskResponse createTask(TaskRequest taskRequest, Long userId) {
+    @PreAuthorize("@resourceAccessService.isOwnerOfSection(#taskRequest.sectionId(), principal.id)")
+    public TaskResponse createTask(TaskRequest taskRequest) {
         return Optional.of(taskRequest)
                 .map(taskRequestMapper::toEntity)
                 .map(task -> {
                     task.setIsCompleted(false);
-                    task.setUser(userService.getUserById(userId));
+                    task.setSection(sectionService.getSectionById(taskRequest.sectionId()));
                     return taskRepository.save(task);
-                }).map(taskResponseMapper::toDto)
+                })
+                .map(taskResponseMapper::toDto)
                 .orElseThrow();
     }
 
     @Override
-    @PreAuthorize("@userAccessChecker.isOwnerOfTask(#taskId, principal.id)")
     @Transactional
-    public TaskResponse updateTask(Long taskId, TaskRequest taskRequest) {
+    @PreAuthorize("""
+            @resourceAccessService.isOwnerOfSection(#taskRequest.sectionId(), principal.id) &&
+            @resourceAccessService.isOwnerOfTask(#taskId, principal.id)
+            """)
+    public TaskResponse updateTask(TaskRequest taskRequest, Long taskId) {
         return taskRepository.findById(taskId)
                 .map(task -> {
                     task.setTitle(taskRequest.title());
                     task.setDescription(taskRequest.description());
+                    task.setSection(sectionService.getSectionById(taskRequest.sectionId()));
                     return taskRepository.save(task);
                 })
                 .map(taskResponseMapper::toDto)
@@ -72,8 +72,18 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    @PreAuthorize("@userAccessChecker.isOwnerOfTask(#taskId, principal.id)")
     @Transactional
+    @PreAuthorize("@resourceAccessService.isOwnerOfTask(#taskId, principal.id)")
+    public void deleteTask(Long taskId) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new ObjectNotFoundException("Task with id '%d' not found".formatted(taskId)));
+
+        taskRepository.delete(task);
+    }
+
+    @Override
+    @Transactional
+    @PreAuthorize("@resourceAccessService.isOwnerOfTask(#taskId, principal.id)")
     public TaskResponse toggleCompleted(Long taskId) {
         return taskRepository.findById(taskId)
                 .map(task -> {
@@ -82,15 +92,5 @@ public class TaskServiceImpl implements TaskService {
                 })
                 .map(taskResponseMapper::toDto)
                 .orElseThrow(() -> new ObjectNotFoundException("Task with id '%d' not found".formatted(taskId)));
-    }
-
-    @Override
-    @PreAuthorize("@userAccessChecker.isOwnerOfTask(#taskId, principal.id)")
-    @Transactional
-    public void deleteTask(Long taskId) {
-        Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new ObjectNotFoundException("Task with id '%d' not found".formatted(taskId)));
-
-        taskRepository.delete(task);
     }
 }
