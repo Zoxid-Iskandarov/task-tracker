@@ -4,7 +4,7 @@ CREATE TABLE task
     title        VARCHAR(255) NOT NULL,
     description  TEXT,
     is_completed BOOLEAN   DEFAULT FALSE,
+    section_id   BIGINT       NOT NULL REFERENCES section (id) ON DELETE CASCADE,
     created      TIMESTAMP DEFAULT now(),
-    updated      TIMESTAMP,
-    user_id      BIGINT       NOT NULL REFERENCES users (id) ON DELETE CASCADE
+    updated      TIMESTAMP
 );

@@ -5,6 +5,7 @@ import com.walking.backend.domain.dto.user.UserResponse;
 import com.walking.backend.domain.model.User;
 
 public interface UserService {
+
     UserResponse getUserByUsername(String username);
 
     User getUserById(Long userId);

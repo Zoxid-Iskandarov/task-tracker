@@ -12,27 +12,25 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.LocalDateTime;
 
 @Entity
+@Table(uniqueConstraints = {
+        @UniqueConstraint(name = "uk_board_name_user_id", columnNames = {"name", "user_id"})
+})
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @EntityListeners(AuditingEntityListener.class)
-public class Task {
+public class Board {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
-    private String title;
-
-    private String description;
-
-    @Column(name = "is_completed")
-    private Boolean isCompleted;
+    @Column(nullable = false, length = 100)
+    private String name;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "section_id")
-    private Section section;
+    @JoinColumn(name = "user_id")
+    private User user;
 
     @CreatedDate
     @Column(updatable = false)
