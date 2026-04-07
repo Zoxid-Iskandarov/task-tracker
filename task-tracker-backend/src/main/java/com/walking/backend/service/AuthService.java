@@ -3,13 +3,13 @@ package com.walking.backend.service;
 import com.walking.backend.domain.dto.auth.AuthResponse;
 import com.walking.backend.domain.dto.auth.SignInRequest;
 import com.walking.backend.domain.dto.auth.SignUpRequest;
-import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 public interface AuthService {
 
-    AuthResponse signUp(SignUpRequest signUpRequest);
+    AuthResponse signUp(SignUpRequest signUpRequest, HttpServletResponse response);
 
-    AuthResponse signIn(SignInRequest signInRequest);
+    AuthResponse signIn(SignInRequest signInRequest, HttpServletResponse response);
 
-    AuthResponse refreshTokens(HttpServletRequest request);
+    AuthResponse refreshToken(String refreshToken, HttpServletResponse response);
 }

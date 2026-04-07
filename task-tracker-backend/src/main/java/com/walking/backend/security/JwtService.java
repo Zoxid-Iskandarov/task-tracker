@@ -2,6 +2,8 @@ package com.walking.backend.security;
 
 import com.walking.backend.domain.exception.AuthException;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -19,8 +21,6 @@ import java.util.function.Function;
 @Service
 @RequiredArgsConstructor
 public class JwtService {
-    private final TokenService tokenService;
-
     @Value("${security.jwt.secret}")
     private final String secret;
 
@@ -38,34 +38,8 @@ public class JwtService {
         return generateToken(username, refreshTokenExpiration);
     }
 
-    public boolean isValidAccessToken(String token, String username, Long userId) {
-        if (!extractUsername(token).equals(username) || isTokenExpired(token)) {
-            return false;
-        }
-        Long tokenUserId = tokenService.getUserIdByAccessToken(token);
-
-        return tokenUserId != null && tokenUserId.equals(userId);
-    }
-
-    public boolean isValidRefreshToken(String token, String username, Long userId) {
-        if (!extractUsername(token).equals(username) || isTokenExpired(token)) {
-            return false;
-        }
-        Long tokenUserId = tokenService.getUserIdByRefreshToken(token);
-
-        return tokenUserId != null && tokenUserId.equals(userId);
-    }
-
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
-    }
-
-    private boolean isTokenExpired(String token) {
-        return extractExpiration(token).before(new Date());
-    }
-
-    private Date extractExpiration(String token) {
-        return extractClaim(token, Claims::getExpiration);
     }
 
     private <T> T extractClaim(String token, Function<Claims, T> resolver) {
@@ -79,7 +53,9 @@ public class JwtService {
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
-        } catch (Exception e) {
+        } catch (ExpiredJwtException e) {
+            throw new AuthException("Token expired");
+        } catch (JwtException e) {
             throw new AuthException("Invalid or malformed token");
         }
     }

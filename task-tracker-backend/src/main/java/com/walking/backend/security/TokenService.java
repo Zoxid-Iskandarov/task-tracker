@@ -1,20 +1,24 @@
 package com.walking.backend.security;
 
+import com.walking.backend.domain.dto.auth.AuthResponse;
+import com.walking.backend.domain.exception.AuthException;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.server.Cookie;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Service;
 
-import java.util.Set;
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
 public class TokenService {
+    private final JwtService jwtService;
     private final StringRedisTemplate redisTemplate;
-
-    @Value("${security.jwt.redis.access_token_prefix}")
-    private final String accessTokenPrefix;
 
     @Value("${security.jwt.redis.refresh_token_prefix}")
     private final String refreshTokenPrefix;
@@ -22,68 +26,88 @@ public class TokenService {
     @Value("${security.jwt.redis.user_token_prefix}")
     private final String userTokenPrefix;
 
-    @Value("${security.jwt.access_token_expiration}")
-    private final long accessTokenExpiration;
-
     @Value("${security.jwt.refresh_token_expiration}")
     private final long refreshTokenExpiration;
 
-    public void saveAccessToken(String token, Long userId) {
-        redisTemplate.opsForValue()
-                .set(getAccessTokenKey(token), userId.toString(), accessTokenExpiration, TimeUnit.MINUTES);
+    @Value("${security.jwt.cookie-name}")
+    private String cookieName;
 
-        redisTemplate.opsForSet()
-                .add(getUserTokenKey(userId), accessTokenPrefix + token);
+    public AuthResponse generateTokens(String username, Long userId, HttpServletResponse response) {
+        String accessToken = jwtService.generateAccessToken(username);
+        String refreshToken = jwtService.generateRefreshToken(username);
+
+        saveRefreshToken(refreshToken, userId);
+
+        ResponseCookie refreshTokenCookie = ResponseCookie.from(cookieName, refreshToken)
+                .httpOnly(true)
+                .secure(false)
+                .path("/auth/")
+                .maxAge(Duration.ofMinutes(refreshTokenExpiration))
+                .sameSite(Cookie.SameSite.LAX.attributeValue())
+                .build();
+
+        response.addHeader(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString());
+
+        return new AuthResponse(accessToken);
     }
 
     public void saveRefreshToken(String token, Long userId) {
         redisTemplate.opsForValue()
-                .set(getRefreshTokenKey(token), userId.toString(), refreshTokenExpiration, TimeUnit.MINUTES);
+                .set(getTokenKey(token), userId.toString(), refreshTokenExpiration, TimeUnit.MINUTES);
 
-        redisTemplate.opsForSet()
-                .add(getUserTokenKey(userId), refreshTokenPrefix + token);
-
-        redisTemplate.expire(getUserTokenKey(userId), refreshTokenExpiration, TimeUnit.MINUTES);
+        redisTemplate.opsForValue()
+                .set(getUserTokenKey(userId), token, refreshTokenExpiration, TimeUnit.MINUTES);
     }
 
-    public Long getUserIdByAccessToken(String token) {
-        String value = redisTemplate.opsForValue()
-                .get(getAccessTokenKey(token));
+    public AuthResponse validateAndRefreshToken(String refreshToken, HttpServletResponse response) {
+        if (refreshToken == null) {
+            throw new AuthException("Refresh token not passed");
+        }
 
-        return value != null ? Long.valueOf(value) : null;
-    }
+        String username = jwtService.extractUsername(refreshToken);
 
-    public Long getUserIdByRefreshToken(String token) {
-        String value = redisTemplate.opsForValue()
-                .get(getRefreshTokenKey(token));
+        String key = getTokenKey(refreshToken);
+        String userId = redisTemplate.opsForValue().get(key);
 
-        return value != null ? Long.valueOf(value) : null;
-    }
-
-    public void deleteAllTokensOfUser(Long userId) {
-        Set<String> tokens = redisTemplate.opsForSet()
-                .members(getUserTokenKey(userId));
-
-        for (String token : tokens) {
-            if (token.startsWith(accessTokenPrefix)) {
-                redisTemplate.delete(token);
-            } else if (token.startsWith(refreshTokenPrefix)) {
-                redisTemplate.delete(token);
-            }
+        if (userId == null) {
+            throw new AuthException("Refresh token is revoked");
         }
 
         redisTemplate.delete(getUserTokenKey(userId));
+        redisTemplate.delete(key);
+
+        return generateTokens(username, Long.valueOf(userId), response);
     }
 
-    private String getAccessTokenKey(String token) {
-        return accessTokenPrefix + token;
+    public void deleteRefreshToken(Long userId) {
+        String key = getUserTokenKey(userId);
+        String token = redisTemplate.opsForValue().get(key);
+
+        if (token != null) {
+            redisTemplate.delete(getTokenKey(token));
+            redisTemplate.delete(key);
+        }
     }
 
-    private String getRefreshTokenKey(String token) {
-        return refreshTokenPrefix + token;
+    public void deleteRefreshToken(String refreshToken) {
+        String key = getTokenKey(refreshToken);
+        String userId = redisTemplate.opsForValue().get(key);
+
+        if (userId != null) {
+            redisTemplate.delete(getUserTokenKey(userId));
+            redisTemplate.delete(key);
+        }
+    }
+
+    private String getTokenKey(String refreshToken) {
+        return refreshTokenPrefix + refreshToken;
     }
 
     private String getUserTokenKey(Long userId) {
+        return userTokenPrefix + userId;
+    }
+
+    private String getUserTokenKey(String userId) {
         return userTokenPrefix + userId;
     }
 }

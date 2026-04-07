@@ -31,7 +31,7 @@ public class JwtFilter extends OncePerRequestFilter {
     private final CustomUserDetailsService userDetailsService;
 
     private static final List<String> UNSECURED_URL = List.of(
-            "/auth/sign-up", "/auth/sign-in", "/auth/refresh"
+            "/auth/sign-up", "/auth/sign-in", "/auth/refresh", "/auth/sign-out"
     );
 
     @Override
@@ -53,7 +53,7 @@ public class JwtFilter extends OncePerRequestFilter {
         String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            sendAuthError(response, "Access token not transformed");
+            sendAuthError(response, "Access token not passed");
             return;
         }
 
@@ -63,17 +63,12 @@ public class JwtFilter extends OncePerRequestFilter {
         try {
             username = jwtService.extractUsername(token);
         } catch (AuthException e) {
-            sendAuthError(response, "Invalid or malformed token");
+            sendAuthError(response, e.getMessage());
             return;
         }
 
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             CustomUserDetails userDetails = userDetailsService.loadUserByUsername(username);
-
-            if (!jwtService.isValidAccessToken(token, userDetails.username(), userDetails.id())) {
-                sendAuthError(response, "Access token is revoked");
-                return;
-            }
 
             UsernamePasswordAuthenticationToken authenticationToken =
                     new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());

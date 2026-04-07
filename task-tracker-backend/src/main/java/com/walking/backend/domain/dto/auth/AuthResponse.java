@@ -7,9 +7,5 @@ import io.swagger.v3.oas.annotations.media.Schema;
 public record AuthResponse(
         @Schema(description = "Short-lived JWT access token for resource access", example = "eyJhbGci...")
         @JsonProperty("access_token")
-        String accessToken,
-
-        @Schema(description = "Long-lived JWT refresh token for obtaining new access tokens", example = "eyJhbGci...")
-        @JsonProperty("refresh_token")
-        String refreshToken) {
+        String accessToken) {
 }

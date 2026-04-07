@@ -32,10 +32,8 @@ security:
     access_token_expiration: 30
     refresh_token_expiration: 300
     redis:
-      access_token_prefix: 'access:token:'
-      refresh_token_prefix: 'refresh:token:'
-      user_token_prefix: 'user:tokens:'
-    header:
-      refresh-token: "X-Refresh-Token"
+      refresh_token_prefix: 'token:'
+      user_token_prefix: 'user:'
+    cookie-name: refresh_token
 kafka:
   topic-name: EMAIL_SENDING_TASKS
