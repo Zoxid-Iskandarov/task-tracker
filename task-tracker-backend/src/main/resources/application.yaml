@@ -29,8 +29,8 @@ spring:
 security:
   jwt:
     secret: ${JWT_SECRET}
-    access_token_expiration: 30
-    refresh_token_expiration: 300
+    access_token_expiration: 15
+    refresh_token_expiration: 7200
     redis:
       refresh_token_prefix: 'token:'
       user_token_prefix: 'user:'
