@@ -3,6 +3,7 @@ package com.walking.backend.config;
 import com.walking.backend.security.CustomUserDetailsService;
 import com.walking.backend.security.filter.JwtFilter;
 import com.walking.backend.security.handler.CustomAccessDeniedHandler;
+import com.walking.backend.security.handler.CustomAuthenticationEntryPoint;
 import com.walking.backend.security.handler.CustomLogoutHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -29,6 +30,7 @@ public class SecurityConfig {
     private final JwtFilter jwtFilter;
     private final CustomLogoutHandler logoutHandler;
     private final CustomAccessDeniedHandler accessDeniedHandler;
+    private final CustomAuthenticationEntryPoint authenticationEntryPoint;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) {
@@ -40,6 +42,7 @@ public class SecurityConfig {
                         .anyRequest().authenticated())
                 .userDetailsService(userDetailsService)
                 .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(authenticationEntryPoint)
                         .accessDeniedHandler(accessDeniedHandler))
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))

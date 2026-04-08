@@ -51,14 +51,6 @@ public class TokenService {
         return new AuthResponse(accessToken);
     }
 
-    public void saveRefreshToken(String token, Long userId) {
-        redisTemplate.opsForValue()
-                .set(getTokenKey(token), userId.toString(), refreshTokenExpiration, TimeUnit.MINUTES);
-
-        redisTemplate.opsForValue()
-                .set(getUserTokenKey(userId), token, refreshTokenExpiration, TimeUnit.MINUTES);
-    }
-
     public AuthResponse validateAndRefreshToken(String refreshToken, HttpServletResponse response) {
         if (refreshToken == null) {
             throw new AuthException("Refresh token not passed");
@@ -97,6 +89,14 @@ public class TokenService {
             redisTemplate.delete(getUserTokenKey(userId));
             redisTemplate.delete(key);
         }
+    }
+
+    private void saveRefreshToken(String token, Long userId) {
+        redisTemplate.opsForValue()
+                .set(getTokenKey(token), userId.toString(), refreshTokenExpiration, TimeUnit.MINUTES);
+
+        redisTemplate.opsForValue()
+                .set(getUserTokenKey(userId), token, refreshTokenExpiration, TimeUnit.MINUTES);
     }
 
     private String getTokenKey(String refreshToken) {
