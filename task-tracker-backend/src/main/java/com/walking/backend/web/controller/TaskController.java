@@ -34,9 +34,14 @@ public class TaskController {
         return taskService.updateTask(taskRequest, taskId);
     }
 
-    @PatchMapping("/{taskId}")
+    @PatchMapping("/{taskId}/toogle")
     public TaskResponse toggleCompleted(@PathVariable Long taskId) {
         return taskService.toggleCompleted(taskId);
+    }
+
+    @PatchMapping("/{taskId}/move")
+    public TaskResponse moveTask(@PathVariable Long taskId, @RequestParam("sectionId") Long sectionId) {
+        return taskService.moveTask(taskId, sectionId);
     }
 
     @DeleteMapping("/{taskId}")

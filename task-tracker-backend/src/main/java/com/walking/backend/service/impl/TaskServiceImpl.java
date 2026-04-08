@@ -93,4 +93,20 @@ public class TaskServiceImpl implements TaskService {
                 .map(taskResponseMapper::toDto)
                 .orElseThrow(() -> new ObjectNotFoundException("Task with id '%d' not found".formatted(taskId)));
     }
+
+    @Override
+    @Transactional
+    @PreAuthorize("""
+            @resourceAccessService.isOwnerOfTask(#taskId, principal.id) && 
+            @resourceAccessService.isOwnerOfSection(#sectionId, principal.id)
+            """)
+    public TaskResponse moveTask(Long taskId, Long sectionId) {
+        return taskRepository.findById(taskId)
+                .map(task -> {
+                    task.setSection(sectionService.getSectionById(sectionId));
+                    return taskRepository.save(task);
+                })
+                .map(taskResponseMapper::toDto)
+                .orElseThrow(() -> new ObjectNotFoundException("Task with id '%d' not found".formatted(taskId)));
+    }
 }

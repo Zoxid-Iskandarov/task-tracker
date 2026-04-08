@@ -16,4 +16,6 @@ public interface TaskService {
     void deleteTask(Long taskId);
 
     TaskResponse toggleCompleted(Long taskId);
+
+    TaskResponse moveTask(Long taskId, Long sectionId);
 }
