@@ -1,8 +1,10 @@
 package com.walking.backend.domain.dto.task;
 
+import com.walking.backend.domain.dto.label.LabelResponse;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Schema(description = "Response object representing a task")
 public record TaskResponse(
@@ -19,6 +21,8 @@ public record TaskResponse(
         Boolean isCompleted,
 
         Long sectionId,
+
+        List<LabelResponse> labels,
 
         @Schema(description = "Task creation timestamp", example = "2025-12-20T10:00:00")
         LocalDateTime created,

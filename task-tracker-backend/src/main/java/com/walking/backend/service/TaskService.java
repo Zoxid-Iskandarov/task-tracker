@@ -18,4 +18,8 @@ public interface TaskService {
     TaskResponse toggleCompleted(Long taskId);
 
     TaskResponse moveTask(Long taskId, Long sectionId);
+
+    TaskResponse addLabelToTask(Long taskId, Long labelId);
+
+    TaskResponse deleteLabelFromTask(Long taskId, Long labelId);
 }

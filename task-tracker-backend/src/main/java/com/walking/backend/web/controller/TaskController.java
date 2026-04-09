@@ -34,13 +34,13 @@ public class TaskController {
         return taskService.updateTask(taskRequest, taskId);
     }
 
-    @PatchMapping("/{taskId}/toogle")
+    @PatchMapping("/{taskId}/toggle")
     public TaskResponse toggleCompleted(@PathVariable Long taskId) {
         return taskService.toggleCompleted(taskId);
     }
 
-    @PatchMapping("/{taskId}/move")
-    public TaskResponse moveTask(@PathVariable Long taskId, @RequestParam("sectionId") Long sectionId) {
+    @PatchMapping("/{taskId}/section/{sectionId}")
+    public TaskResponse moveTask(@PathVariable Long taskId, @PathVariable Long sectionId) {
         return taskService.moveTask(taskId, sectionId);
     }
 
@@ -49,5 +49,15 @@ public class TaskController {
         taskService.deleteTask(taskId);
 
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{taskId}/labels/{labelId}")
+    public TaskResponse addLabelToTask(@PathVariable Long taskId, @PathVariable Long labelId) {
+        return taskService.addLabelToTask(taskId, labelId);
+    }
+
+    @DeleteMapping("/{taskId}/labels/{labelId}")
+    public TaskResponse deleteLabelFromTask(@PathVariable Long taskId, @PathVariable Long labelId) {
+        return taskService.deleteLabelFromTask(taskId, labelId);
     }
 }

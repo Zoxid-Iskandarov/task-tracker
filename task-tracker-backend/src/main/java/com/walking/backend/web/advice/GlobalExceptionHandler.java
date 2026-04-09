@@ -3,6 +3,7 @@ package com.walking.backend.web.advice;
 import com.walking.backend.domain.dto.error.ErrorResponse;
 import com.walking.backend.domain.exception.AuthException;
 import com.walking.backend.domain.exception.DuplicateException;
+import com.walking.backend.domain.exception.LabelLimitExceededException;
 import com.walking.backend.domain.exception.ObjectNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.FieldError;
@@ -46,6 +47,12 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ErrorResponse handleObjectNotFoundException(ObjectNotFoundException e) {
         return buildErrorResponse(e.getMessage(), HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(LabelLimitExceededException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ErrorResponse handleLabelLimitExceededException(LabelLimitExceededException e) {
+        return buildErrorResponse(e.getMessage(), HttpStatus.CONFLICT);
     }
 
     private ErrorResponse buildErrorResponse(String message, HttpStatus status) {
