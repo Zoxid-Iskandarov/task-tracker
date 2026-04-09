@@ -78,8 +78,13 @@ public class SectionServiceImpl implements SectionService {
                     .formatted(updateSectionRequest.name(), section.getBoard().getId()));
         }
 
-        section.setName(updateSectionRequest.name());
-        return sectionResponseMapper.toDto(sectionRepository.save(section));
+        return Optional.of(section)
+                .map(sectionEntity -> {
+                    sectionEntity.setName(updateSectionRequest.name());
+                    return sectionRepository.save(section);
+                })
+                .map(sectionResponseMapper::toDto)
+                .orElseThrow();
     }
 
     @Override

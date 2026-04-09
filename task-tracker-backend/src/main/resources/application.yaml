@@ -37,3 +37,7 @@ security:
     cookie-name: refresh_token
 kafka:
   topic-name: EMAIL_SENDING_TASKS
+app:
+  label:
+    max-per-board: 100
+    max-per-task: 15

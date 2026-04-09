@@ -72,8 +72,13 @@ public class BoardServiceImpl implements BoardService {
             throw new DuplicateException("Board with name '%s' already exists".formatted(boardRequest.name()));
         }
 
-        board.setName(boardRequest.name());
-        return boardResponseMapper.toDto(boardRepository.save(board));
+        return Optional.of(board)
+                .map(boardEntity -> {
+                    boardEntity.setName(boardRequest.name());
+                    return boardRepository.save(board);
+                })
+                .map(boardResponseMapper::toDto)
+                .orElseThrow();
     }
 
     @Override

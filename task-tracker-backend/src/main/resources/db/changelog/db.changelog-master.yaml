@@ -7,3 +7,5 @@ databaseChangeLog:
       file: db/changelog/V1_0_3__create_section.sql
   - include:
       file: db/changelog/V1_0_4__create_task.sql
+  - include:
+      file: db/changelog/V1_0_5__create_label.sql
