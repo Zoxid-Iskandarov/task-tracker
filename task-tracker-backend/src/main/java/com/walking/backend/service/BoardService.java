@@ -10,7 +10,7 @@ public interface BoardService {
 
     Page<BoardResponse> getBoards(Long userId, Pageable pageable);
 
-    Board getBoardById(Long boardId);
+    Board getProxyBoardById(Long boardId);
 
     BoardResponse createBoard(BoardRequest boardRequest, Long userId);
 

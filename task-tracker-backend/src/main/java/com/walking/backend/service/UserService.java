@@ -8,7 +8,7 @@ public interface UserService {
 
     UserResponse getUserByUsername(String username);
 
-    User getUserById(Long userId);
+    User getProxyUserById(Long userId);
 
     UserResponse createUser(SignUpRequest signUpRequest);
 }

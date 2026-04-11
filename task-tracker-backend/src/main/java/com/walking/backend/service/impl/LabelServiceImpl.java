@@ -64,7 +64,7 @@ public class LabelServiceImpl implements LabelService {
         return Optional.of(createLabelRequest)
                 .map(createLabelRequestMapper::toEntity)
                 .map(label -> {
-                    label.setBoard(boardService.getBoardById(createLabelRequest.boardId()));
+                    label.setBoard(boardService.getProxyBoardById(createLabelRequest.boardId()));
                     return labelRepository.save(label);
                 })
                 .map(labelResponseMapper::toDto)
@@ -76,7 +76,7 @@ public class LabelServiceImpl implements LabelService {
     @PreAuthorize("@resourceAccessService.isOwnerOfLabel(#labelId, principal.id)")
     public LabelResponse updateLabel(UpdateLabelRequest labelRequest, Long labelId) {
         Label label = labelRepository.findById(labelId)
-                .orElseThrow(() -> new ObjectNotFoundException("Label with id '%d' not found"));
+                .orElseThrow(() -> new ObjectNotFoundException("Label with id '%d' not found".formatted(labelId)));
 
         if (labelRepository.existsByNameAndBoardIdAndIdNot(labelRequest.name(), label.getBoard().getId(), labelId)) {
             throw new DuplicateException("Label with name '%s' in board with id '%d' already exists"

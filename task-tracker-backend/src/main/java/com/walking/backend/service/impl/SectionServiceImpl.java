@@ -41,9 +41,8 @@ public class SectionServiceImpl implements SectionService {
     }
 
     @Override
-    public Section getSectionById(Long sectionId) {
-        return sectionRepository.findById(sectionId)
-                .orElseThrow(() -> new ObjectNotFoundException("Section with id '%d' not found".formatted(sectionId)));
+    public Section getProxySectionById(Long sectionId) {
+        return sectionRepository.getReferenceById(sectionId);
     }
 
     @Override
@@ -58,7 +57,7 @@ public class SectionServiceImpl implements SectionService {
         return Optional.of(createSectionRequest)
                 .map(createSectionRequestMapper::toEntity)
                 .map(section -> {
-                    section.setBoard(boardService.getBoardById(createSectionRequest.boardId()));
+                    section.setBoard(boardService.getProxyBoardById(createSectionRequest.boardId()));
                     return sectionRepository.save(section);
                 })
                 .map(sectionResponseMapper::toDto)

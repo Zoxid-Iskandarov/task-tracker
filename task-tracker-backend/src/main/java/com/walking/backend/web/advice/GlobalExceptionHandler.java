@@ -1,10 +1,7 @@
 package com.walking.backend.web.advice;
 
 import com.walking.backend.domain.dto.error.ErrorResponse;
-import com.walking.backend.domain.exception.AuthException;
-import com.walking.backend.domain.exception.DuplicateException;
-import com.walking.backend.domain.exception.LabelLimitExceededException;
-import com.walking.backend.domain.exception.ObjectNotFoundException;
+import com.walking.backend.domain.exception.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -52,6 +49,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(LabelLimitExceededException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
     public ErrorResponse handleLabelLimitExceededException(LabelLimitExceededException e) {
+        return buildErrorResponse(e.getMessage(), HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(CrossBoardOperationException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ErrorResponse handleCrossBoardOperationException(CrossBoardOperationException e) {
         return buildErrorResponse(e.getMessage(), HttpStatus.CONFLICT);
     }
 

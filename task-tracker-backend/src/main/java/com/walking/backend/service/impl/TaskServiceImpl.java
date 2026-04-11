@@ -56,7 +56,7 @@ public class TaskServiceImpl implements TaskService {
                 .map(taskRequestMapper::toEntity)
                 .map(task -> {
                     task.setIsCompleted(false);
-                    task.setSection(sectionService.getSectionById(taskRequest.sectionId()));
+                    task.setSection(sectionService.getProxySectionById(taskRequest.sectionId()));
                     return taskRepository.save(task);
                 })
                 .map(taskResponseMapper::toDto)
@@ -74,7 +74,7 @@ public class TaskServiceImpl implements TaskService {
                 .map(task -> {
                     task.setTitle(taskRequest.title());
                     task.setDescription(taskRequest.description());
-                    task.setSection(sectionService.getSectionById(taskRequest.sectionId()));
+                    task.setSection(sectionService.getProxySectionById(taskRequest.sectionId()));
                     return taskRepository.save(task);
                 })
                 .map(taskResponseMapper::toDto)
@@ -113,7 +113,7 @@ public class TaskServiceImpl implements TaskService {
     public TaskResponse moveTask(Long taskId, Long sectionId) {
         return taskRepository.findById(taskId)
                 .map(task -> {
-                    task.setSection(sectionService.getSectionById(sectionId));
+                    task.setSection(sectionService.getProxySectionById(sectionId));
                     return taskRepository.save(task);
                 })
                 .map(taskResponseMapper::toDto)

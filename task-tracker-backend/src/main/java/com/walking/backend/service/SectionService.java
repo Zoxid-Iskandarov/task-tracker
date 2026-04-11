@@ -11,7 +11,7 @@ public interface SectionService {
 
     Page<SectionResponse> getSections(Long boardId, Pageable pageable);
 
-    Section getSectionById(Long sectionId);
+    Section getProxySectionById(Long sectionId);
 
     SectionResponse createSection(CreateSectionRequest createSectionRequest);
 

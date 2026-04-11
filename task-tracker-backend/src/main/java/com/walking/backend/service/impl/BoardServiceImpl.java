@@ -39,9 +39,8 @@ public class BoardServiceImpl implements BoardService {
     }
 
     @Override
-    public Board getBoardById(Long boardId) {
-        return boardRepository.findById(boardId)
-                .orElseThrow(() -> new ObjectNotFoundException("Board with id '%d' not found".formatted(boardId)));
+    public Board getProxyBoardById(Long boardId) {
+        return boardRepository.getReferenceById(boardId);
     }
 
     @Override
@@ -54,7 +53,7 @@ public class BoardServiceImpl implements BoardService {
         return Optional.of(boardRequest)
                 .map(boardRequestMapper::toEntity)
                 .map(board -> {
-                    board.setUser(userService.getUserById(userId));
+                    board.setUser(userService.getProxyUserById(userId));
                     return boardRepository.save(board);
                 })
                 .map(boardResponseMapper::toDto)
