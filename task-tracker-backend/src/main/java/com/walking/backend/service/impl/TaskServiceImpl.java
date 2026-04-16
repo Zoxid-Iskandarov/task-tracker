@@ -1,5 +1,6 @@
 package com.walking.backend.service.impl;
 
+import com.walking.backend.domain.dto.task.TaskFilter;
 import com.walking.backend.domain.dto.task.TaskRequest;
 import com.walking.backend.domain.dto.task.TaskResponse;
 import com.walking.backend.domain.exception.CrossBoardOperationException;
@@ -43,6 +44,20 @@ public class TaskServiceImpl implements TaskService {
     @PreAuthorize("@resourceAccessService.isOwnerOfSection(#sectionId, principal.id)")
     public Page<TaskResponse> getTasks(Long sectionId, Pageable pageable) {
         Specification<Task> spec = Specification.where(TaskSpecification.hasSectionId(sectionId));
+
+        return taskRepository.findAll(spec, pageable)
+                .map(taskResponseMapper::toDto);
+    }
+
+    @Override
+    @PreAuthorize("@resourceAccessService.isOwnerOfBoard(#boardId, principal.id)")
+    public Page<TaskResponse> searchTasks(Long boardId, TaskFilter taskFilter, Pageable pageable) {
+        Specification<Task> spec = Specification.where(TaskSpecification.hasBoardId(boardId))
+                .and(TaskSpecification.hasSectionId(taskFilter.sectionId()))
+                .and(TaskSpecification.hasTitle(taskFilter.title()))
+                .and(TaskSpecification.hasCompleted(taskFilter.completed()))
+                .and(TaskSpecification.hasLabels(taskFilter.labelIds()))
+                .and(TaskSpecification.hasCreatedBetween(taskFilter.createdFrom(), taskFilter.createdTo()));
 
         return taskRepository.findAll(spec, pageable)
                 .map(taskResponseMapper::toDto);

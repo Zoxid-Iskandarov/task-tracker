@@ -3,7 +3,9 @@ package com.walking.backend.web.controller;
 import com.walking.backend.domain.dto.section.CreateSectionRequest;
 import com.walking.backend.domain.dto.section.SectionResponse;
 import com.walking.backend.domain.dto.section.UpdateSectionRequest;
+import com.walking.backend.domain.dto.task.TaskResponse;
 import com.walking.backend.service.SectionService;
+import com.walking.backend.service.TaskService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,10 +19,11 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class SectionController {
     private final SectionService sectionService;
+    private final TaskService taskService;
 
-    @GetMapping("/{boardId}")
-    public Page<SectionResponse> getSections(@PathVariable Long boardId, @PageableDefault(30) Pageable pageable) {
-        return sectionService.getSections(boardId, pageable);
+    @GetMapping("/{sectionId}/tasks")
+    public Page<TaskResponse> getTasks(@PathVariable Long sectionId, @PageableDefault(50) Pageable pageable) {
+        return taskService.getTasks(sectionId, pageable);
     }
 
     @PostMapping

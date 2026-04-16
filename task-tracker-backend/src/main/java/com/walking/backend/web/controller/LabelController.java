@@ -9,18 +9,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/labels")
 @RequiredArgsConstructor
 public class LabelController {
     private final LabelService labelService;
-
-    @GetMapping("/{boardId}")
-    public List<LabelResponse> getLabels(@PathVariable Long boardId) {
-        return labelService.getLabels(boardId);
-    }
 
     @PostMapping
     public ResponseEntity<LabelResponse> createLabel(@RequestBody CreateLabelRequest createLabelRequest) {

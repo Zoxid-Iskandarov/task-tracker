@@ -11,7 +11,7 @@ import java.util.List;
 @Service
 public interface LabelService {
 
-    List<LabelResponse> getLabels(Long boardId);
+    List<LabelResponse> getLabels(Long boardId, String name);
 
     Label getLabelById(Long labelId);
 

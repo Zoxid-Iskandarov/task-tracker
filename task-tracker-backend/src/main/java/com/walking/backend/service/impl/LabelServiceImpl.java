@@ -35,9 +35,12 @@ public class LabelServiceImpl implements LabelService {
 
     @Override
     @PreAuthorize("@resourceAccessService.isOwnerOfBoard(#boardId, principal.id)")
-    public List<LabelResponse> getLabels(Long boardId) {
-        return labelRepository.findAllByBoardId(boardId)
-                .stream()
+    public List<LabelResponse> getLabels(Long boardId, String name) {
+        List<Label> labels = (name != null && !name.isBlank())
+                ? labelRepository.findAllByBoardIdAndNameContainingIgnoreCase(boardId, name)
+                : labelRepository.findAllByBoardId(boardId);
+
+        return labels.stream()
                 .map(labelResponseMapper::toDto)
                 .toList();
     }

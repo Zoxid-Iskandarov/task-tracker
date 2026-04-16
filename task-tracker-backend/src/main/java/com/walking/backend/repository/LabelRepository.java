@@ -11,6 +11,8 @@ public interface LabelRepository extends JpaRepository<Label, Long> {
 
     List<Label> findAllByBoardId(Long boardId);
 
+    List<Label> findAllByBoardIdAndNameContainingIgnoreCase(Long boardId, String name);
+
     boolean existsByNameAndBoardId(String name, Long boardId);
 
     boolean existsByNameAndBoardIdAndIdNot(String name, Long boardId, Long labelId);

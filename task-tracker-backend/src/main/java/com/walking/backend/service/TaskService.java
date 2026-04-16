@@ -1,5 +1,6 @@
 package com.walking.backend.service;
 
+import com.walking.backend.domain.dto.task.TaskFilter;
 import com.walking.backend.domain.dto.task.TaskRequest;
 import com.walking.backend.domain.dto.task.TaskResponse;
 import org.springframework.data.domain.Page;
@@ -8,6 +9,8 @@ import org.springframework.data.domain.Pageable;
 public interface TaskService {
 
     Page<TaskResponse> getTasks(Long sectionId, Pageable pageable);
+
+    Page<TaskResponse> searchTasks(Long boardId, TaskFilter taskFilter, Pageable pageable);
 
     TaskResponse createTask(TaskRequest taskRequest);
 
