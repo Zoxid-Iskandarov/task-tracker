@@ -41,3 +41,5 @@ app:
   label:
     max-per-board: 100
     max-per-task: 15
+  task:
+    position-step: 10.0

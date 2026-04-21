@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -27,4 +28,11 @@ public interface TaskRepository extends JpaRepository<Task, Long>, JpaSpecificat
     @Override
     @EntityGraph(attributePaths = {"labels"})
     Page<Task> findAll(Specification<Task> spec, Pageable pageable);
+
+    @Query("select max(t.position) from Task t where t.section.id = :sectionId")
+    Double findMaxPositionBySectionId(Long sectionId);
+
+    Optional<Task> findByIdAndSectionId(Long taskId, Long sectionId);
+
+    List<Task> findAllBySectionIdOrderByPositionAsc(Long sectionId);
 }

@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 @Schema(description = "Request object for creating or updating a task")
-public record TaskRequest(
+public record CreateTaskRequest(
         @Schema(
                 description = "Title of the task",
                 example = "Buy groceries",

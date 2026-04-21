@@ -1,8 +1,6 @@
 package com.walking.backend.service;
 
-import com.walking.backend.domain.dto.task.TaskFilter;
-import com.walking.backend.domain.dto.task.TaskRequest;
-import com.walking.backend.domain.dto.task.TaskResponse;
+import com.walking.backend.domain.dto.task.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -12,15 +10,15 @@ public interface TaskService {
 
     Page<TaskResponse> searchTasks(Long boardId, TaskFilter taskFilter, Pageable pageable);
 
-    TaskResponse createTask(TaskRequest taskRequest);
+    TaskResponse createTask(CreateTaskRequest createTaskRequest);
 
-    TaskResponse updateTask(TaskRequest taskRequest, Long taskId);
+    TaskResponse updateTask(UpdateTaskRequest updateTaskRequest, Long taskId);
 
     void deleteTask(Long taskId);
 
     TaskResponse toggleCompleted(Long taskId);
 
-    TaskResponse moveTask(Long taskId, Long sectionId);
+    TaskResponse moveTask(Long taskId, MoveTaskRequest moveTaskRequest);
 
     TaskResponse addLabelToTask(Long taskId, Long labelId);
 

@@ -1,7 +1,9 @@
 package com.walking.backend.web.controller;
 
-import com.walking.backend.domain.dto.task.TaskRequest;
+import com.walking.backend.domain.dto.task.CreateTaskRequest;
+import com.walking.backend.domain.dto.task.MoveTaskRequest;
 import com.walking.backend.domain.dto.task.TaskResponse;
+import com.walking.backend.domain.dto.task.UpdateTaskRequest;
 import com.walking.backend.service.TaskService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -20,9 +22,9 @@ public class TaskController {
         return taskService.toggleCompleted(taskId);
     }
 
-    @PatchMapping("/{taskId}/section/{sectionId}")
-    public TaskResponse moveTask(@PathVariable Long taskId, @PathVariable Long sectionId) {
-        return taskService.moveTask(taskId, sectionId);
+    @PatchMapping("/{taskId}/move")
+    public TaskResponse moveTask(@PathVariable Long taskId, @RequestBody MoveTaskRequest moveTaskRequest) {
+        return taskService.moveTask(taskId, moveTaskRequest);
     }
 
     @PostMapping("/{taskId}/labels/{labelId}")
@@ -36,14 +38,14 @@ public class TaskController {
     }
 
     @PostMapping
-    public ResponseEntity<TaskResponse> createTask(@RequestBody @Validated TaskRequest taskRequest) {
+    public ResponseEntity<TaskResponse> createTask(@RequestBody @Validated CreateTaskRequest createTaskRequest) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(taskService.createTask(taskRequest));
+                .body(taskService.createTask(createTaskRequest));
     }
 
     @PutMapping("/{taskId}")
-    public TaskResponse updateTask(@RequestBody @Validated TaskRequest taskRequest, @PathVariable Long taskId) {
-        return taskService.updateTask(taskRequest, taskId);
+    public TaskResponse updateTask(@RequestBody UpdateTaskRequest updateTaskRequest, @PathVariable Long taskId) {
+        return taskService.updateTask(updateTaskRequest, taskId);
     }
 
     @DeleteMapping("/{taskId}")

@@ -22,7 +22,8 @@ public class SectionController {
     private final TaskService taskService;
 
     @GetMapping("/{sectionId}/tasks")
-    public Page<TaskResponse> getTasks(@PathVariable Long sectionId, @PageableDefault(50) Pageable pageable) {
+    public Page<TaskResponse> getTasks(@PathVariable Long sectionId,
+                                       @PageableDefault(size = 50, sort = {"position"}) Pageable pageable) {
         return taskService.getTasks(sectionId, pageable);
     }
 

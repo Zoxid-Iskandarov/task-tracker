@@ -58,6 +58,12 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(e.getMessage(), HttpStatus.CONFLICT);
     }
 
+    @ExceptionHandler(TaskMoveException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleTaskMoveException(TaskMoveException e) {
+        return buildErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+
     private ErrorResponse buildErrorResponse(String message, HttpStatus status) {
         return new ErrorResponse(status.value(), status.getReasonPhrase(), message, LocalDateTime.now());
     }
