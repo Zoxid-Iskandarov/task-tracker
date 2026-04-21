@@ -14,6 +14,7 @@ import com.walking.backend.service.TaskService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -48,9 +49,10 @@ public class BoardController {
     }
 
     @GetMapping("/{boardId}/tasks")
-    public Page<TaskResponse> searchTasks(@PathVariable Long boardId,
-                                          TaskFilter taskFilter,
-                                          @PageableDefault(50) Pageable pageable) {
+    public Page<TaskResponse> searchTasks(
+            @PathVariable Long boardId,
+            TaskFilter taskFilter,
+            @PageableDefault(size = 50, sort = "created", direction = Sort.Direction.DESC) Pageable pageable) {
         return taskService.searchTasks(boardId, taskFilter, pageable);
     }
 
