@@ -32,6 +32,8 @@ public class Task {
     @Column(name = "is_completed")
     private Boolean isCompleted;
 
+    private Double position;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "section_id")
     private Section section;
