@@ -5,7 +5,7 @@ import com.walking.backend.domain.dto.board.BoardResponse;
 import com.walking.backend.domain.dto.label.LabelResponse;
 import com.walking.backend.domain.dto.section.SectionResponse;
 import com.walking.backend.domain.dto.task.TaskFilter;
-import com.walking.backend.domain.dto.task.TaskResponse;
+import com.walking.backend.domain.dto.task.TaskPreviewResponse;
 import com.walking.backend.security.CustomUserDetails;
 import com.walking.backend.service.BoardService;
 import com.walking.backend.service.LabelService;
@@ -49,7 +49,7 @@ public class BoardController {
     }
 
     @GetMapping("/{boardId}/tasks")
-    public Page<TaskResponse> searchTasks(
+    public Page<TaskPreviewResponse> searchTasks(
             @PathVariable Long boardId,
             TaskFilter taskFilter,
             @PageableDefault(size = 50, sort = "created", direction = Sort.Direction.DESC) Pageable pageable) {

@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Schema(description = "Response object representing a task")
-public record TaskResponse(
+public record TaskFullResponse(
         @Schema(description = "Unique identifier of the task", example = "1")
         Long id,
 

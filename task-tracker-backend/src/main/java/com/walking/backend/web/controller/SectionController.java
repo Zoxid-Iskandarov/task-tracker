@@ -3,7 +3,7 @@ package com.walking.backend.web.controller;
 import com.walking.backend.domain.dto.section.CreateSectionRequest;
 import com.walking.backend.domain.dto.section.SectionResponse;
 import com.walking.backend.domain.dto.section.UpdateSectionRequest;
-import com.walking.backend.domain.dto.task.TaskResponse;
+import com.walking.backend.domain.dto.task.TaskPreviewResponse;
 import com.walking.backend.service.SectionService;
 import com.walking.backend.service.TaskService;
 import lombok.RequiredArgsConstructor;
@@ -22,8 +22,8 @@ public class SectionController {
     private final TaskService taskService;
 
     @GetMapping("/{sectionId}/tasks")
-    public Page<TaskResponse> getTasks(@PathVariable Long sectionId,
-                                       @PageableDefault(size = 50, sort = {"position"}) Pageable pageable) {
+    public Page<TaskPreviewResponse> getTasks(@PathVariable Long sectionId,
+                                              @PageableDefault(size = 50, sort = {"position"}) Pageable pageable) {
         return taskService.getTasks(sectionId, pageable);
     }
 

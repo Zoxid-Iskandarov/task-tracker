@@ -6,21 +6,23 @@ import org.springframework.data.domain.Pageable;
 
 public interface TaskService {
 
-    Page<TaskResponse> getTasks(Long sectionId, Pageable pageable);
+    Page<TaskPreviewResponse> getTasks(Long sectionId, Pageable pageable);
 
-    Page<TaskResponse> searchTasks(Long boardId, TaskFilter taskFilter, Pageable pageable);
+    Page<TaskPreviewResponse> searchTasks(Long boardId, TaskFilter taskFilter, Pageable pageable);
 
-    TaskResponse createTask(CreateTaskRequest createTaskRequest);
+    TaskFullResponse getTaskById(Long taskId);
 
-    TaskResponse updateTask(UpdateTaskRequest updateTaskRequest, Long taskId);
+    TaskFullResponse createTask(CreateTaskRequest createTaskRequest);
+
+    TaskFullResponse updateTask(UpdateTaskRequest updateTaskRequest, Long taskId);
 
     void deleteTask(Long taskId);
 
-    TaskResponse toggleCompleted(Long taskId);
+    TaskPreviewResponse toggleCompleted(Long taskId);
 
-    TaskResponse moveTask(Long taskId, MoveTaskRequest moveTaskRequest);
+    TaskPreviewResponse moveTask(Long taskId, MoveTaskRequest moveTaskRequest);
 
-    TaskResponse addLabelToTask(Long taskId, Long labelId);
+    TaskPreviewResponse addLabelToTask(Long taskId, Long labelId);
 
-    TaskResponse deleteLabelFromTask(Long taskId, Long labelId);
+    TaskPreviewResponse deleteLabelFromTask(Long taskId, Long labelId);
 }

@@ -1,9 +1,6 @@
 package com.walking.backend.web.controller;
 
-import com.walking.backend.domain.dto.task.CreateTaskRequest;
-import com.walking.backend.domain.dto.task.MoveTaskRequest;
-import com.walking.backend.domain.dto.task.TaskResponse;
-import com.walking.backend.domain.dto.task.UpdateTaskRequest;
+import com.walking.backend.domain.dto.task.*;
 import com.walking.backend.service.TaskService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -17,34 +14,39 @@ import org.springframework.web.bind.annotation.*;
 public class TaskController {
     private final TaskService taskService;
 
+    @GetMapping("/{taskId}")
+    public TaskFullResponse getTaskById(@PathVariable Long taskId) {
+        return taskService.getTaskById(taskId);
+    }
+
     @PatchMapping("/{taskId}/toggle")
-    public TaskResponse toggleCompleted(@PathVariable Long taskId) {
+    public TaskPreviewResponse toggleCompleted(@PathVariable Long taskId) {
         return taskService.toggleCompleted(taskId);
     }
 
     @PatchMapping("/{taskId}/move")
-    public TaskResponse moveTask(@PathVariable Long taskId, @RequestBody MoveTaskRequest moveTaskRequest) {
+    public TaskPreviewResponse moveTask(@PathVariable Long taskId, @RequestBody MoveTaskRequest moveTaskRequest) {
         return taskService.moveTask(taskId, moveTaskRequest);
     }
 
     @PostMapping("/{taskId}/labels/{labelId}")
-    public TaskResponse addLabelToTask(@PathVariable Long taskId, @PathVariable Long labelId) {
+    public TaskPreviewResponse addLabelToTask(@PathVariable Long taskId, @PathVariable Long labelId) {
         return taskService.addLabelToTask(taskId, labelId);
     }
 
     @DeleteMapping("/{taskId}/labels/{labelId}")
-    public TaskResponse deleteLabelFromTask(@PathVariable Long taskId, @PathVariable Long labelId) {
+    public TaskPreviewResponse deleteLabelFromTask(@PathVariable Long taskId, @PathVariable Long labelId) {
         return taskService.deleteLabelFromTask(taskId, labelId);
     }
 
     @PostMapping
-    public ResponseEntity<TaskResponse> createTask(@RequestBody @Validated CreateTaskRequest createTaskRequest) {
+    public ResponseEntity<TaskFullResponse> createTask(@RequestBody @Validated CreateTaskRequest createTaskRequest) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(taskService.createTask(createTaskRequest));
     }
 
     @PutMapping("/{taskId}")
-    public TaskResponse updateTask(@RequestBody UpdateTaskRequest updateTaskRequest, @PathVariable Long taskId) {
+    public TaskFullResponse updateTask(@RequestBody UpdateTaskRequest updateTaskRequest, @PathVariable Long taskId) {
         return taskService.updateTask(updateTaskRequest, taskId);
     }
 

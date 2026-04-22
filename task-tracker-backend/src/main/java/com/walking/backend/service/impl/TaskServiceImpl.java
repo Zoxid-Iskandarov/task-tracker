@@ -10,7 +10,8 @@ import com.walking.backend.service.LabelService;
 import com.walking.backend.service.SectionService;
 import com.walking.backend.service.TaskService;
 import com.walking.backend.service.mapper.task.CreateTaskRequestMapper;
-import com.walking.backend.service.mapper.task.TaskResponseMapper;
+import com.walking.backend.service.mapper.task.TaskFullResponseMapper;
+import com.walking.backend.service.mapper.task.TaskPreviewResponseMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
@@ -31,7 +32,8 @@ public class TaskServiceImpl implements TaskService {
     private final LabelService labelService;
     private final TaskRepository taskRepository;
     private final CreateTaskRequestMapper createTaskRequestMapper;
-    private final TaskResponseMapper taskResponseMapper;
+    private final TaskFullResponseMapper taskFullResponseMapper;
+    private final TaskPreviewResponseMapper taskPreviewResponseMapper;
 
     @Value("${app.label.max-per-task}")
     private final int maxLabelsPerTask;
@@ -41,16 +43,16 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     @PreAuthorize("@resourceAccessService.isOwnerOfSection(#sectionId, principal.id)")
-    public Page<TaskResponse> getTasks(Long sectionId, Pageable pageable) {
+    public Page<TaskPreviewResponse> getTasks(Long sectionId, Pageable pageable) {
         Specification<Task> spec = Specification.where(TaskSpecification.hasSectionId(sectionId));
 
         return taskRepository.findAll(spec, pageable)
-                .map(taskResponseMapper::toDto);
+                .map(taskPreviewResponseMapper::toDto);
     }
 
     @Override
     @PreAuthorize("@resourceAccessService.isOwnerOfBoard(#boardId, principal.id)")
-    public Page<TaskResponse> searchTasks(Long boardId, TaskFilter taskFilter, Pageable pageable) {
+    public Page<TaskPreviewResponse> searchTasks(Long boardId, TaskFilter taskFilter, Pageable pageable) {
         Specification<Task> spec = Specification.where(TaskSpecification.hasBoardId(boardId))
                 .and(TaskSpecification.hasSectionId(taskFilter.sectionId()))
                 .and(TaskSpecification.hasTitle(taskFilter.title()))
@@ -59,13 +61,21 @@ public class TaskServiceImpl implements TaskService {
                 .and(TaskSpecification.hasCreatedBetween(taskFilter.createdFrom(), taskFilter.createdTo()));
 
         return taskRepository.findAll(spec, pageable)
-                .map(taskResponseMapper::toDto);
+                .map(taskPreviewResponseMapper::toDto);
+    }
+
+    @Override
+    @PreAuthorize("@resourceAccessService.isOwnerOfTask(#taskId, principal.id)")
+    public TaskFullResponse getTaskById(Long taskId) {
+        return taskRepository.findByIdWithLabels(taskId)
+                .map(taskFullResponseMapper::toDto)
+                .orElseThrow(() -> new ObjectNotFoundException("Task with id '%d' not found".formatted(taskId)));
     }
 
     @Override
     @Transactional
     @PreAuthorize("@resourceAccessService.isOwnerOfSection(#createTaskRequest.sectionId(), principal.id)")
-    public TaskResponse createTask(CreateTaskRequest createTaskRequest) {
+    public TaskFullResponse createTask(CreateTaskRequest createTaskRequest) {
         Task task = createTaskRequestMapper.toEntity(createTaskRequest);
         task.setIsCompleted(false);
         task.setSection(sectionService.getProxySectionById(createTaskRequest.sectionId()));
@@ -77,20 +87,20 @@ public class TaskServiceImpl implements TaskService {
 
         Task savedTask = taskRepository.save(task);
 
-        return taskResponseMapper.toDto(savedTask);
+        return taskFullResponseMapper.toDto(savedTask);
     }
 
     @Override
     @Transactional
     @PreAuthorize("@resourceAccessService.isOwnerOfTask(#taskId, principal.id)")
-    public TaskResponse updateTask(UpdateTaskRequest updateTaskRequest, Long taskId) {
+    public TaskFullResponse updateTask(UpdateTaskRequest updateTaskRequest, Long taskId) {
         return taskRepository.findById(taskId)
                 .map(task -> {
                     task.setTitle(updateTaskRequest.title());
                     task.setDescription(updateTaskRequest.description());
                     return taskRepository.save(task);
                 })
-                .map(taskResponseMapper::toDto)
+                .map(taskFullResponseMapper::toDto)
                 .orElseThrow(() -> new ObjectNotFoundException("Task with id '%d' not found".formatted(taskId)));
     }
 
@@ -107,13 +117,13 @@ public class TaskServiceImpl implements TaskService {
     @Override
     @Transactional
     @PreAuthorize("@resourceAccessService.isOwnerOfTask(#taskId, principal.id)")
-    public TaskResponse toggleCompleted(Long taskId) {
+    public TaskPreviewResponse toggleCompleted(Long taskId) {
         return taskRepository.findById(taskId)
                 .map(task -> {
                     task.setIsCompleted(!task.getIsCompleted());
                     return taskRepository.save(task);
                 })
-                .map(taskResponseMapper::toDto)
+                .map(taskPreviewResponseMapper::toDto)
                 .orElseThrow(() -> new ObjectNotFoundException("Task with id '%d' not found".formatted(taskId)));
     }
 
@@ -123,7 +133,7 @@ public class TaskServiceImpl implements TaskService {
             @resourceAccessService.isOwnerOfTask(#taskId, principal.id) &&
             @resourceAccessService.isOwnerOfSection(#moveTaskRequest.sectionId(), principal.id)
             """)
-    public TaskResponse moveTask(Long taskId, MoveTaskRequest moveTaskRequest) {
+    public TaskPreviewResponse moveTask(Long taskId, MoveTaskRequest moveTaskRequest) {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ObjectNotFoundException("Task with id '%d' not found".formatted(taskId)));
 
@@ -175,7 +185,7 @@ public class TaskServiceImpl implements TaskService {
 
         Task movedTask = taskRepository.save(task);
 
-        return taskResponseMapper.toDto(movedTask);
+        return taskPreviewResponseMapper.toDto(movedTask);
     }
 
     @Override
@@ -184,7 +194,7 @@ public class TaskServiceImpl implements TaskService {
             @resourceAccessService.isOwnerOfTask(#taskId, principal.id) &&
             @resourceAccessService.isOwnerOfLabel(#labelId, principal.id)
             """)
-    public TaskResponse addLabelToTask(Long taskId, Long labelId) {
+    public TaskPreviewResponse addLabelToTask(Long taskId, Long labelId) {
         Task task = taskRepository.findByIdWithLabels(taskId)
                 .orElseThrow(() -> new ObjectNotFoundException("Task with id '%d' not found".formatted(taskId)));
 
@@ -203,7 +213,7 @@ public class TaskServiceImpl implements TaskService {
                     .formatted(labelId, taskId));
         }
 
-        return taskResponseMapper.toDto(task);
+        return taskPreviewResponseMapper.toDto(task);
     }
 
     @Override
@@ -212,7 +222,7 @@ public class TaskServiceImpl implements TaskService {
             @resourceAccessService.isOwnerOfTask(#taskId, principal.id) &&
             @resourceAccessService.isOwnerOfLabel(#labelId, principal.id)
             """)
-    public TaskResponse deleteLabelFromTask(Long taskId, Long labelId) {
+    public TaskPreviewResponse deleteLabelFromTask(Long taskId, Long labelId) {
         Task task = taskRepository.findByIdWithLabels(taskId)
                 .orElseThrow(() -> new ObjectNotFoundException("Task with id '%d' not found".formatted(taskId)));
 
@@ -223,7 +233,7 @@ public class TaskServiceImpl implements TaskService {
         }
 
         task.getLabels().remove(label);
-        return taskResponseMapper.toDto(task);
+        return taskPreviewResponseMapper.toDto(task);
     }
 
     private void reindexSection(Long sectionId) {
