@@ -42,7 +42,7 @@ public class TaskServiceImpl implements TaskService {
     private final double positionStep;
 
     @Override
-    @PreAuthorize("@resourceAccessService.isOwnerOfSection(#sectionId, principal.id)")
+    @PreAuthorize("@resourceAccessService.canViewSection(#sectionId, principal.id)")
     public Page<TaskPreviewResponse> getTasks(Long sectionId, Pageable pageable) {
         Specification<Task> spec = Specification.where(TaskSpecification.hasSectionId(sectionId));
 
@@ -51,7 +51,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    @PreAuthorize("@resourceAccessService.isOwnerOfBoard(#boardId, principal.id)")
+    @PreAuthorize("@resourceAccessService.canViewBoard(#boardId, principal.id)")
     public Page<TaskPreviewResponse> searchTasks(Long boardId, TaskFilter taskFilter, Pageable pageable) {
         Specification<Task> spec = Specification.where(TaskSpecification.hasBoardId(boardId))
                 .and(TaskSpecification.hasSectionId(taskFilter.sectionId()))
@@ -65,7 +65,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    @PreAuthorize("@resourceAccessService.isOwnerOfTask(#taskId, principal.id)")
+    @PreAuthorize("@resourceAccessService.canViewTask(#taskId, principal.id)")
     public TaskFullResponse getTaskById(Long taskId) {
         return taskRepository.findByIdWithLabels(taskId)
                 .map(taskFullResponseMapper::toDto)
@@ -74,7 +74,7 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     @Transactional
-    @PreAuthorize("@resourceAccessService.isOwnerOfSection(#createTaskRequest.sectionId(), principal.id)")
+    @PreAuthorize("@resourceAccessService.canEditSection(#createTaskRequest.sectionId(), principal.id)")
     public TaskFullResponse createTask(CreateTaskRequest createTaskRequest) {
         Task task = createTaskRequestMapper.toEntity(createTaskRequest);
         task.setIsCompleted(false);
@@ -92,7 +92,7 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     @Transactional
-    @PreAuthorize("@resourceAccessService.isOwnerOfTask(#taskId, principal.id)")
+    @PreAuthorize("@resourceAccessService.canEditTask(#taskId, principal.id)")
     public TaskFullResponse updateTask(UpdateTaskRequest updateTaskRequest, Long taskId) {
         return taskRepository.findById(taskId)
                 .map(task -> {
@@ -106,7 +106,7 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     @Transactional
-    @PreAuthorize("@resourceAccessService.isOwnerOfTask(#taskId, principal.id)")
+    @PreAuthorize("@resourceAccessService.canEditTask(#taskId, principal.id)")
     public void deleteTask(Long taskId) {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ObjectNotFoundException("Task with id '%d' not found".formatted(taskId)));
@@ -116,7 +116,7 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     @Transactional
-    @PreAuthorize("@resourceAccessService.isOwnerOfTask(#taskId, principal.id)")
+    @PreAuthorize("@resourceAccessService.canEditTask(#taskId, principal.id)")
     public TaskPreviewResponse toggleCompleted(Long taskId) {
         return taskRepository.findById(taskId)
                 .map(task -> {
@@ -130,8 +130,8 @@ public class TaskServiceImpl implements TaskService {
     @Override
     @Transactional
     @PreAuthorize("""
-            @resourceAccessService.isOwnerOfTask(#taskId, principal.id) &&
-            @resourceAccessService.isOwnerOfSection(#moveTaskRequest.sectionId(), principal.id)
+            @resourceAccessService.canEditTask(#taskId, principal.id) &&
+            @resourceAccessService.canEditSection(#moveTaskRequest.sectionId(), principal.id)
             """)
     public TaskPreviewResponse moveTask(Long taskId, MoveTaskRequest moveTaskRequest) {
         Task task = taskRepository.findById(taskId)
@@ -191,8 +191,8 @@ public class TaskServiceImpl implements TaskService {
     @Override
     @Transactional
     @PreAuthorize("""
-            @resourceAccessService.isOwnerOfTask(#taskId, principal.id) &&
-            @resourceAccessService.isOwnerOfLabel(#labelId, principal.id)
+            @resourceAccessService.canEditTask(#taskId, principal.id) &&
+            @resourceAccessService.canUseLabel(#labelId, principal.id)
             """)
     public TaskPreviewResponse addLabelToTask(Long taskId, Long labelId) {
         Task task = taskRepository.findByIdWithLabels(taskId)
@@ -219,8 +219,8 @@ public class TaskServiceImpl implements TaskService {
     @Override
     @Transactional
     @PreAuthorize("""
-            @resourceAccessService.isOwnerOfTask(#taskId, principal.id) &&
-            @resourceAccessService.isOwnerOfLabel(#labelId, principal.id)
+            @resourceAccessService.canEditTask(#taskId, principal.id) &&
+            @resourceAccessService.canUseLabel(#labelId, principal.id)
             """)
     public TaskPreviewResponse deleteLabelFromTask(Long taskId, Long labelId) {
         Task task = taskRepository.findByIdWithLabels(taskId)

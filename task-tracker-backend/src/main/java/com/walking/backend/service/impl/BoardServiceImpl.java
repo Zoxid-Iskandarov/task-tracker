@@ -1,20 +1,17 @@
 package com.walking.backend.service.impl;
 
-import com.walking.backend.domain.dto.board.BoardResponse;
 import com.walking.backend.domain.dto.board.BoardRequest;
-import com.walking.backend.domain.exception.DuplicateException;
+import com.walking.backend.domain.dto.board.BoardResponse;
 import com.walking.backend.domain.exception.ObjectNotFoundException;
-import com.walking.backend.domain.model.Board;
+import com.walking.backend.domain.model.*;
 import com.walking.backend.repository.BoardRepository;
-import com.walking.backend.repository.specification.BoardSpecification;
 import com.walking.backend.service.BoardService;
 import com.walking.backend.service.UserService;
-import com.walking.backend.service.mapper.board.BoardResponseMapper;
 import com.walking.backend.service.mapper.board.BoardRequestMapper;
+import com.walking.backend.service.mapper.board.BoardResponseMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,9 +29,7 @@ public class BoardServiceImpl implements BoardService {
 
     @Override
     public Page<BoardResponse> getBoards(Long userId, Pageable pageable) {
-        Specification<Board> spec = Specification.where(BoardSpecification.hasUserId(userId));
-
-        return boardRepository.findAll(spec, pageable)
+        return boardRepository.findAllByUserId(userId, pageable)
                 .map(boardResponseMapper::toDto);
     }
 
@@ -46,30 +41,23 @@ public class BoardServiceImpl implements BoardService {
     @Override
     @Transactional
     public BoardResponse createBoard(BoardRequest boardRequest, Long userId) {
-        if (boardRepository.existsBoardByNameAndUserId(boardRequest.name(), userId)) {
-            throw new DuplicateException("Board with name '%s' already exists".formatted(boardRequest.name()));
-        }
+        Board board = boardRequestMapper.toEntity(boardRequest);
+        User user = userService.getProxyUserById(userId);
 
-        return Optional.of(boardRequest)
-                .map(boardRequestMapper::toEntity)
-                .map(board -> {
-                    board.setUser(userService.getProxyUserById(userId));
-                    return boardRepository.save(board);
-                })
-                .map(boardResponseMapper::toDto)
-                .orElseThrow();
+        BoardMember member = new BoardMember(board, user, BoardRole.OWNER);
+        board.getMembers().add(member);
+
+        Board savedBoard = boardRepository.save(board);
+
+        return boardResponseMapper.toDto(savedBoard);
     }
 
     @Override
     @Transactional
-    @PreAuthorize("@resourceAccessService.isOwnerOfBoard(#boardId, #userId)")
-    public BoardResponse updateBoard(BoardRequest boardRequest, Long boardId, Long userId) {
+    @PreAuthorize("@resourceAccessService.canManageBoard(#boardId, principal.id)")
+    public BoardResponse updateBoard(BoardRequest boardRequest, Long boardId) {
         Board board = boardRepository.findById(boardId)
                 .orElseThrow(() -> new ObjectNotFoundException("Board with id '%d' not found".formatted(boardId)));
-
-        if (boardRepository.existsBoardByNameAndUserIdAndIdNot(boardRequest.name(), userId, board.getId())) {
-            throw new DuplicateException("Board with name '%s' already exists".formatted(boardRequest.name()));
-        }
 
         return Optional.of(board)
                 .map(boardEntity -> {
@@ -82,7 +70,7 @@ public class BoardServiceImpl implements BoardService {
 
     @Override
     @Transactional
-    @PreAuthorize("@resourceAccessService.isOwnerOfBoard(#boardId, principal.id)")
+    @PreAuthorize("@resourceAccessService.canManageBoard(#boardId, principal.id)")
     public void deleteBoard(Long boardId) {
         Board board = boardRepository.findById(boardId)
                 .orElseThrow(() -> new ObjectNotFoundException("Board with id '%d' not found".formatted(boardId)));

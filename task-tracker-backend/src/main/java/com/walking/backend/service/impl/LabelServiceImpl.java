@@ -34,7 +34,7 @@ public class LabelServiceImpl implements LabelService {
     private final int maxLabelsPerBoard;
 
     @Override
-    @PreAuthorize("@resourceAccessService.isOwnerOfBoard(#boardId, principal.id)")
+    @PreAuthorize("@resourceAccessService.canViewBoard(#boardId, principal.id)")
     public List<LabelResponse> getLabels(Long boardId, String name) {
         List<Label> labels = (name != null && !name.isBlank())
                 ? labelRepository.findAllByBoardIdAndNameContainingIgnoreCase(boardId, name)
@@ -53,10 +53,11 @@ public class LabelServiceImpl implements LabelService {
 
     @Override
     @Transactional
-    @PreAuthorize("@resourceAccessService.isOwnerOfBoard(#createLabelRequest.boardId(), principal.id)")
+    @PreAuthorize("@resourceAccessService.canManageBoard(#createLabelRequest.boardId(), principal.id)")
     public LabelResponse createLabel(CreateLabelRequest createLabelRequest) {
         if (labelRepository.countByBoardId(createLabelRequest.boardId()) >= maxLabelsPerBoard) {
-            throw new LabelLimitExceededException("Cannot add more than 100 labels to a board");
+            throw new LabelLimitExceededException("Cannot add more than '%d' labels to a board"
+                    .formatted(maxLabelsPerBoard));
         }
 
         if (labelRepository.existsByNameAndBoardId(createLabelRequest.name(), createLabelRequest.boardId())) {
@@ -76,7 +77,7 @@ public class LabelServiceImpl implements LabelService {
 
     @Override
     @Transactional
-    @PreAuthorize("@resourceAccessService.isOwnerOfLabel(#labelId, principal.id)")
+    @PreAuthorize("@resourceAccessService.canManageLabel(#labelId, principal.id)")
     public LabelResponse updateLabel(UpdateLabelRequest labelRequest, Long labelId) {
         Label label = labelRepository.findById(labelId)
                 .orElseThrow(() -> new ObjectNotFoundException("Label with id '%d' not found".formatted(labelId)));
@@ -98,10 +99,10 @@ public class LabelServiceImpl implements LabelService {
 
     @Override
     @Transactional
-    @PreAuthorize("@resourceAccessService.isOwnerOfLabel(#labelId, principal.id)")
+    @PreAuthorize("@resourceAccessService.canManageLabel(#labelId, principal.id)")
     public void deleteLabel(Long labelId) {
         Label label = labelRepository.findById(labelId)
-                .orElseThrow(() -> new ObjectNotFoundException("Label with id '%d' not found"));
+                .orElseThrow(() -> new ObjectNotFoundException("Label with id '%d' not found".formatted(labelId)));
 
         labelRepository.delete(label);
     }

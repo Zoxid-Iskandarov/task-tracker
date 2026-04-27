@@ -64,10 +64,8 @@ public class BoardController {
     }
 
     @PutMapping("/{boardId}")
-    public BoardResponse updateBoard(@PathVariable Long boardId,
-                                     @RequestBody BoardRequest boardRequest,
-                                     @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return boardService.updateBoard(boardRequest, boardId, userDetails.id());
+    public BoardResponse updateBoard(@PathVariable Long boardId, @RequestBody BoardRequest boardRequest) {
+        return boardService.updateBoard(boardRequest, boardId);
     }
 
     @DeleteMapping("/{boardId}")

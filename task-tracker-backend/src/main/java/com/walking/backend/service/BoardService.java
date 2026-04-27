@@ -14,7 +14,7 @@ public interface BoardService {
 
     BoardResponse createBoard(BoardRequest boardRequest, Long userId);
 
-    BoardResponse updateBoard(BoardRequest boardRequest, Long boarId, Long userId);
+    BoardResponse updateBoard(BoardRequest boardRequest, Long boarId);
 
     void deleteBoard(Long boardId);
 }
