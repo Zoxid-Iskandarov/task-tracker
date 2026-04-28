@@ -38,6 +38,12 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public User getUserById(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new ObjectNotFoundException("User with id '%d' not found".formatted(userId)));
+    }
+
+    @Override
     @Transactional
     public UserResponse createUser(SignUpRequest signUpRequest) {
         if (userRepository.findByUsername(signUpRequest.username()).isPresent()) {

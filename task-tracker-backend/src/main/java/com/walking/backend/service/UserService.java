@@ -10,5 +10,7 @@ public interface UserService {
 
     User getProxyUserById(Long userId);
 
+    User getUserById(Long userId);
+
     UserResponse createUser(SignUpRequest signUpRequest);
 }
