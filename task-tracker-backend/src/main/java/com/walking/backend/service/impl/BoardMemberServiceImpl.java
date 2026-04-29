@@ -1,5 +1,6 @@
 package com.walking.backend.service.impl;
 
+import com.walking.backend.domain.dto.boardMember.BoardMemberFilter;
 import com.walking.backend.domain.dto.boardMember.BoardMemberRequest;
 import com.walking.backend.domain.dto.boardMember.BoardMemberResponse;
 import com.walking.backend.domain.dto.kafka.MessageDto;
@@ -10,6 +11,7 @@ import com.walking.backend.domain.model.Board;
 import com.walking.backend.domain.model.BoardMember;
 import com.walking.backend.domain.model.User;
 import com.walking.backend.repository.BoardMemberRepository;
+import com.walking.backend.repository.specification.BoardMemberSpecification;
 import com.walking.backend.security.CustomUserDetails;
 import com.walking.backend.service.BoardMemberService;
 import com.walking.backend.service.BoardService;
@@ -17,6 +19,9 @@ import com.walking.backend.service.KafkaProducerService;
 import com.walking.backend.service.UserService;
 import com.walking.backend.service.mapper.boardMember.BoardMemberResponseMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +37,20 @@ public class BoardMemberServiceImpl implements BoardMemberService {
     private final UserService userService;
     private final BoardMemberResponseMapper boardMemberResponseMapper;
     private final KafkaProducerService kafkaProducerService;
+
+    @Override
+    @PreAuthorize("@resourceAccessService.canManageBoard(#boardId, principal.id)")
+    public Page<BoardMemberResponse> getMembers(Long boardId, BoardMemberFilter boardMemberFilter, Pageable pageable) {
+        Specification<BoardMember> spec = BoardMemberSpecification.hasBoardId(boardId)
+                .and(BoardMemberSpecification.hasUsername(boardMemberFilter.username()))
+                .and(BoardMemberSpecification.hasEmail(boardMemberFilter.email()))
+                .and(BoardMemberSpecification.hasRole(boardMemberFilter.role()))
+                .and(BoardMemberSpecification.hasJoinedBetween(
+                        boardMemberFilter.joinedFrom(), boardMemberFilter.joinedTo()));
+
+        return boardMemberRepository.findAll(spec, pageable)
+                .map(boardMemberResponseMapper::toDto);
+    }
 
     @Override
     public BoardMember getById(Long boardId, Long userId) {

@@ -2,6 +2,7 @@ package com.walking.backend.web.controller;
 
 import com.walking.backend.domain.dto.board.BoardRequest;
 import com.walking.backend.domain.dto.board.BoardResponse;
+import com.walking.backend.domain.dto.boardMember.BoardMemberFilter;
 import com.walking.backend.domain.dto.boardMember.BoardMemberRequest;
 import com.walking.backend.domain.dto.boardMember.BoardMemberResponse;
 import com.walking.backend.domain.dto.label.LabelResponse;
@@ -75,6 +76,14 @@ public class BoardController {
         boardService.deleteBoard(boardId);
 
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{boardId}/members")
+    public Page<BoardMemberResponse> getMembers(
+            @PathVariable Long boardId,
+            BoardMemberFilter boardMemberFilter,
+            @PageableDefault(size = 50, sort = "joined", direction = Sort.Direction.DESC) Pageable pageable) {
+        return boardMemberService.getMembers(boardId, boardMemberFilter, pageable);
     }
 
     @PostMapping("/{boardId}/members")
