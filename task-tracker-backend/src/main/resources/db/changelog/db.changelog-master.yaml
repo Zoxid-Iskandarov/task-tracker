@@ -4,8 +4,10 @@ databaseChangeLog:
   - include:
       file: db/changelog/V1_0_2__create_board.sql
   - include:
-      file: db/changelog/V1_0_3__create_section.sql
+      file: db/changelog/V1_0_3__create_member.sql
   - include:
-      file: db/changelog/V1_0_4__create_task.sql
+      file: db/changelog/V1_0_4__create_section.sql
   - include:
-      file: db/changelog/V1_0_5__create_label.sql
+      file: db/changelog/V1_0_5__create_task.sql
+  - include:
+      file: db/changelog/V1_0_6__create_label.sql

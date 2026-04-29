@@ -1,5 +1,6 @@
 package com.walking.backend.repository;
 
+import com.walking.backend.domain.model.BoardRole;
 import com.walking.backend.domain.model.Task;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -15,8 +16,6 @@ import java.util.Optional;
 
 @Repository
 public interface TaskRepository extends JpaRepository<Task, Long>, JpaSpecificationExecutor<Task> {
-
-    boolean existsByIdAndSectionBoardUserId(Long taskId, Long userId);
 
     @Query("""
             select t from Task t
@@ -35,4 +34,22 @@ public interface TaskRepository extends JpaRepository<Task, Long>, JpaSpecificat
     Optional<Task> findByIdAndSectionId(Long taskId, Long sectionId);
 
     List<Task> findAllBySectionIdOrderByPositionAsc(Long sectionId);
+
+    @Query("""
+            select (count (t) > 0) from Task t
+                        join t.section s
+                        join s.board b
+                        join b.members m
+                                    where t.id = :taskId and m.user.id = :userId
+            """)
+    boolean existsByTaskIdAndUserId(Long taskId, Long userId);
+
+    @Query("""
+            select (count (t) > 0) from Task t
+                        join t.section s
+                        join s.board b
+                        join b.members m
+                                    where t.id = :taskId and m.user.id = :userId and m.role in :roles
+            """)
+    boolean existsByTaskIdAndUserIdAndRoles(Long taskId, Long userId, List<BoardRole> roles);
 }

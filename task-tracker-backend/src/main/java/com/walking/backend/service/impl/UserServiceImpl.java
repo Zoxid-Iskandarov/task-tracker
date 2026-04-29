@@ -10,6 +10,9 @@ import com.walking.backend.service.UserService;
 import com.walking.backend.service.mapper.user.SignUpRequestMapper;
 import com.walking.backend.service.mapper.user.UserResponseMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +29,13 @@ public class UserServiceImpl implements UserService {
     private final SignUpRequestMapper signUpRequestMapper;
 
     @Override
+    @PreAuthorize("@resourceAccessService.canViewBoard(#boardId, principal.id)")
+    public Page<UserResponse> searchUsersToInvite(Long boardId, String query, Pageable pageable) {
+        return userRepository.searchUsersByQueryAndExcludeBoardMembers(query, boardId, pageable)
+                .map(userResponseMapper::toDto);
+    }
+
+    @Override
     public UserResponse getUserByUsername(String username) {
         return userRepository.findByUsername(username)
                 .map(userResponseMapper::toDto)
@@ -35,6 +45,12 @@ public class UserServiceImpl implements UserService {
     @Override
     public User getProxyUserById(Long userId) {
         return userRepository.getReferenceById(userId);
+    }
+
+    @Override
+    public User getUserById(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new ObjectNotFoundException("User with id '%d' not found".formatted(userId)));
     }
 
     @Override

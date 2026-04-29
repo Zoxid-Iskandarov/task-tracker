@@ -64,6 +64,12 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(IllegalOperationException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ErrorResponse handleIllegalOperationException(IllegalOperationException e) {
+        return buildErrorResponse(e.getMessage(), HttpStatus.FORBIDDEN);
+    }
+
     private ErrorResponse buildErrorResponse(String message, HttpStatus status) {
         return new ErrorResponse(status.value(), status.getReasonPhrase(), message, LocalDateTime.now());
     }

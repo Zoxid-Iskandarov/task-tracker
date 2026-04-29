@@ -1,16 +1,19 @@
 package com.walking.backend.repository;
 
 import com.walking.backend.domain.model.Board;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface BoardRepository extends JpaRepository<Board, Long>, JpaSpecificationExecutor<Board> {
+public interface BoardRepository extends JpaRepository<Board, Long> {
 
-    boolean existsBoardByNameAndUserIdAndIdNot(String name, Long userId, Long boarId);
-
-    boolean existsBoardByNameAndUserId(String name, Long userId);
-
-    boolean existsBoardByIdAndUserId(Long boardId, Long userId);
+    @Query("""
+            select distinct b from Board b
+                        join b.members m
+                                    where m.user.id = :userId
+            """)
+    Page<Board> findAllByUserId(Long userId, Pageable pageable);
 }

@@ -7,7 +7,6 @@ import com.walking.backend.domain.exception.DuplicateException;
 import com.walking.backend.domain.exception.ObjectNotFoundException;
 import com.walking.backend.domain.model.Section;
 import com.walking.backend.repository.SectionRepository;
-import com.walking.backend.repository.specification.SectionSpecification;
 import com.walking.backend.service.BoardService;
 import com.walking.backend.service.SectionService;
 import com.walking.backend.service.mapper.section.CreateSectionRequestMapper;
@@ -15,7 +14,6 @@ import com.walking.backend.service.mapper.section.SectionResponseMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,11 +30,9 @@ public class SectionServiceImpl implements SectionService {
     private final SectionResponseMapper sectionResponseMapper;
 
     @Override
-    @PreAuthorize("@resourceAccessService.isOwnerOfBoard(#boardId, principal.id)")
+    @PreAuthorize("@resourceAccessService.canViewBoard(#boardId, principal.id)")
     public Page<SectionResponse> getSections(Long boardId, Pageable pageable) {
-        Specification<Section> spec = Specification.where(SectionSpecification.hasBoardId(boardId));
-
-        return sectionRepository.findAll(spec, pageable)
+        return sectionRepository.findAllByBoardId(boardId, pageable)
                 .map(sectionResponseMapper::toDto);
     }
 
@@ -47,7 +43,7 @@ public class SectionServiceImpl implements SectionService {
 
     @Override
     @Transactional
-    @PreAuthorize("@resourceAccessService.isOwnerOfBoard(#createSectionRequest.boardId(), principal.id)")
+    @PreAuthorize("@resourceAccessService.canEditBoard(#createSectionRequest.boardId(), principal.id)")
     public SectionResponse createSection(CreateSectionRequest createSectionRequest) {
         if (sectionRepository.existsSectionByNameAndBoardId(createSectionRequest.name(), createSectionRequest.boardId())) {
             throw new DuplicateException("Section with name '%s' in board with id '%d' already exists"
@@ -66,7 +62,7 @@ public class SectionServiceImpl implements SectionService {
 
     @Override
     @Transactional
-    @PreAuthorize("@resourceAccessService.isOwnerOfSection(#sectionId, principal.id)")
+    @PreAuthorize("@resourceAccessService.canEditSection(#sectionId, principal.id)")
     public SectionResponse updateSection(UpdateSectionRequest updateSectionRequest, Long sectionId) {
         Section section = sectionRepository.findById(sectionId)
                 .orElseThrow(() -> new ObjectNotFoundException("Section with id '%d' not found".formatted(sectionId)));
@@ -88,7 +84,7 @@ public class SectionServiceImpl implements SectionService {
 
     @Override
     @Transactional
-    @PreAuthorize("@resourceAccessService.isOwnerOfSection(#sectionId, principal.id)")
+    @PreAuthorize("@resourceAccessService.canEditSection(#sectionId, principal.id)")
     public void deleteSection(Long sectionId) {
         Section section = sectionRepository.findById(sectionId)
                 .orElseThrow(() -> new ObjectNotFoundException("Section with id '%d' not found".formatted(sectionId)));
