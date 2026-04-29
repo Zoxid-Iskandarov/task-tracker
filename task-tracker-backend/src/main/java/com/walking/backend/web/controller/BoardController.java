@@ -9,6 +9,7 @@ import com.walking.backend.domain.dto.label.LabelResponse;
 import com.walking.backend.domain.dto.section.SectionResponse;
 import com.walking.backend.domain.dto.task.TaskFilter;
 import com.walking.backend.domain.dto.task.TaskPreviewResponse;
+import com.walking.backend.domain.dto.user.UserResponse;
 import com.walking.backend.security.CustomUserDetails;
 import com.walking.backend.service.*;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +33,7 @@ public class BoardController {
     private final SectionService sectionService;
     private final TaskService taskService;
     private final LabelService labelService;
+    private final UserService userService;
 
     @GetMapping
     public Page<BoardResponse> getBoards(
@@ -76,6 +78,13 @@ public class BoardController {
         boardService.deleteBoard(boardId);
 
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{boardId}/users/search")
+    public Page<UserResponse> searchUsers(
+            @PathVariable Long boardId, @RequestParam String query,
+            @PageableDefault(50) Pageable pageable) {
+        return userService.searchUsersToInvite(boardId, query, pageable);
     }
 
     @GetMapping("/{boardId}/members")
