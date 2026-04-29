@@ -7,6 +7,7 @@ import com.walking.backend.service.LabelService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -16,13 +17,15 @@ public class LabelController {
     private final LabelService labelService;
 
     @PostMapping
-    public ResponseEntity<LabelResponse> createLabel(@RequestBody CreateLabelRequest createLabelRequest) {
+    public ResponseEntity<LabelResponse> createLabel(@RequestBody @Validated CreateLabelRequest createLabelRequest) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(labelService.createLabel(createLabelRequest));
     }
 
     @PutMapping("/{labelId}")
-    public LabelResponse updateLabel(@RequestBody UpdateLabelRequest updateLabelRequest, @PathVariable Long labelId) {
+    public LabelResponse updateLabel(
+            @RequestBody @Validated UpdateLabelRequest updateLabelRequest,
+            @PathVariable Long labelId) {
         return labelService.updateLabel(updateLabelRequest, labelId);
     }
 

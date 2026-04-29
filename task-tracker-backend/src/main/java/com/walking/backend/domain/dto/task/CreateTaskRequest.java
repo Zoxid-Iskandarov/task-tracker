@@ -2,6 +2,8 @@ package com.walking.backend.domain.dto.task;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
 @Schema(description = "Request object for creating or updating a task")
@@ -22,5 +24,7 @@ public record CreateTaskRequest(
         @Size(max = 5000, message = "Description cannot exceed 5000 characters")
         String description,
 
+        @NotNull(message = "Section id cannot be null")
+        @Positive(message = "Section id must be positive")
         Long sectionId) {
 }

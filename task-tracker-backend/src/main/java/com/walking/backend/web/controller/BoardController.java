@@ -10,6 +10,7 @@ import com.walking.backend.domain.dto.section.SectionResponse;
 import com.walking.backend.domain.dto.task.TaskFilter;
 import com.walking.backend.domain.dto.task.TaskPreviewResponse;
 import com.walking.backend.domain.dto.user.UserResponse;
+import com.walking.backend.domain.dto.user.UserSearchFilter;
 import com.walking.backend.security.CustomUserDetails;
 import com.walking.backend.service.*;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -62,14 +64,14 @@ public class BoardController {
 
     @PostMapping
     public ResponseEntity<?> createBoard(
-            @RequestBody BoardRequest boardRequest,
+            @RequestBody @Validated BoardRequest boardRequest,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(boardService.createBoard(boardRequest, userDetails.id()));
     }
 
     @PutMapping("/{boardId}")
-    public BoardResponse updateBoard(@PathVariable Long boardId, @RequestBody BoardRequest boardRequest) {
+    public BoardResponse updateBoard(@PathVariable Long boardId, @RequestBody @Validated BoardRequest boardRequest) {
         return boardService.updateBoard(boardRequest, boardId);
     }
 
@@ -82,9 +84,10 @@ public class BoardController {
 
     @GetMapping("/{boardId}/users/search")
     public Page<UserResponse> searchUsers(
-            @PathVariable Long boardId, @RequestParam String query,
+            @PathVariable Long boardId,
+            @Validated UserSearchFilter userSearchFilter,
             @PageableDefault(50) Pageable pageable) {
-        return userService.searchUsersToInvite(boardId, query, pageable);
+        return userService.searchUsersToInvite(boardId, userSearchFilter.query(), pageable);
     }
 
     @GetMapping("/{boardId}/members")
@@ -98,7 +101,7 @@ public class BoardController {
     @PostMapping("/{boardId}/members")
     public BoardMemberResponse addMember(
             @PathVariable Long boardId,
-            @RequestBody BoardMemberRequest boardMemberRequest,
+            @RequestBody @Validated BoardMemberRequest boardMemberRequest,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         return boardMemberService.addMember(boardId, boardMemberRequest, userDetails);
     }
@@ -116,7 +119,7 @@ public class BoardController {
     @PatchMapping("/{boardId}/members")
     public BoardMemberResponse changeRole(
             @PathVariable Long boardId,
-            @RequestBody BoardMemberRequest boardMemberRequest,
+            @RequestBody @Validated BoardMemberRequest boardMemberRequest,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         return boardMemberService.changeRole(boardId, boardMemberRequest, userDetails.id());
     }

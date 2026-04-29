@@ -25,7 +25,9 @@ public class TaskController {
     }
 
     @PatchMapping("/{taskId}/move")
-    public TaskPreviewResponse moveTask(@PathVariable Long taskId, @RequestBody MoveTaskRequest moveTaskRequest) {
+    public TaskPreviewResponse moveTask(
+            @PathVariable Long taskId,
+            @RequestBody @Validated MoveTaskRequest moveTaskRequest) {
         return taskService.moveTask(taskId, moveTaskRequest);
     }
 
@@ -46,7 +48,9 @@ public class TaskController {
     }
 
     @PutMapping("/{taskId}")
-    public TaskFullResponse updateTask(@RequestBody UpdateTaskRequest updateTaskRequest, @PathVariable Long taskId) {
+    public TaskFullResponse updateTask(
+            @RequestBody @Validated UpdateTaskRequest updateTaskRequest,
+            @PathVariable Long taskId) {
         return taskService.updateTask(updateTaskRequest, taskId);
     }
 

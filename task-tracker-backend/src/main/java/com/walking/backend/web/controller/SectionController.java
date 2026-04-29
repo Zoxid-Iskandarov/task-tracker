@@ -12,6 +12,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -28,13 +29,13 @@ public class SectionController {
     }
 
     @PostMapping
-    public ResponseEntity<?> createSection(@RequestBody CreateSectionRequest createSectionRequest) {
+    public ResponseEntity<?> createSection(@RequestBody @Validated CreateSectionRequest createSectionRequest) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(sectionService.createSection(createSectionRequest));
     }
 
     @PutMapping("/{sectionId}")
-    public SectionResponse updateSection(@RequestBody UpdateSectionRequest updateSectionRequest,
+    public SectionResponse updateSection(@RequestBody @Validated UpdateSectionRequest updateSectionRequest,
                                          @PathVariable Long sectionId) {
         return sectionService.updateSection(updateSectionRequest, sectionId);
     }
