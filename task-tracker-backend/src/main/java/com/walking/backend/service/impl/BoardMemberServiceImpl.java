@@ -39,7 +39,7 @@ public class BoardMemberServiceImpl implements BoardMemberService {
     private final KafkaProducerService kafkaProducerService;
 
     @Override
-    @PreAuthorize("@resourceAccessService.canManageBoard(#boardId, principal.id)")
+    @PreAuthorize("@resourceAccessService.canViewBoard(#boardId, principal.id)")
     public Page<BoardMemberResponse> getMembers(Long boardId, BoardMemberFilter boardMemberFilter, Pageable pageable) {
         Specification<BoardMember> spec = BoardMemberSpecification.hasBoardId(boardId)
                 .and(BoardMemberSpecification.hasUsername(boardMemberFilter.username()))
