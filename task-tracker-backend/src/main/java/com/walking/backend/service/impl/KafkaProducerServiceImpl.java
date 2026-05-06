@@ -23,9 +23,9 @@ public class KafkaProducerServiceImpl implements KafkaProducerService {
                 .whenComplete((result, exception) -> {
                     if (exception != null) {
                         log.error("Failed to send message to Kafka: key={}", key, exception);
+                    } else {
+                        log.debug("Message sent to Kafka: key={}, partition={}", key, result.getRecordMetadata().partition());
                     }
-
-                    log.info("Message sent to Kafka: key={}, partition={}", key, result.getRecordMetadata().partition());
                 });
     }
 }
