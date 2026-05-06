@@ -19,13 +19,23 @@ spring:
       host: localhost
       port: 6379
   kafka:
+    bootstrap-servers: localhost:9092
     producer:
-      bootstrap-servers: localhost:9092
+      key-serializer: org.apache.kafka.common.serialization.LongSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JacksonJsonSerializer
       acks: all
+      compression-type: lz4
       properties:
-        spring:
-          json:
-            type.mapping: MessageDto:com.walking.backend.domain.dto.kafka.MessageDto
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 5
+        linger.ms: 10
+        batch.size: 32768
+        delivery.timeout.ms: 120000
+        request.timeout.ms: 30000
+        retry.backoff.ms: 500
+        spring.json:
+          add.type.headers: true
+          type.mapping: MessageDto:com.walking.backend.domain.dto.kafka.MessageDto
 security:
   jwt:
     secret: ${JWT_SECRET}
@@ -35,11 +45,11 @@ security:
       refresh_token_prefix: 'token:'
       user_token_prefix: 'user:'
     cookie-name: refresh_token
-kafka:
-  topic-name: EMAIL_SENDING_TASKS
 app:
   label:
     max-per-board: 100
     max-per-task: 15
   task:
     position-step: 10.0
+  kafka:
+    topic-name: email_sending_tasks
