@@ -4,16 +4,18 @@ spring:
   application:
     name: task-tracker-email-sender
   kafka:
-    producer:
-      bootstrap-servers: localhost:9092
+    bootstrap-servers: localhost:9092
     consumer:
-      bootstrap-servers: localhost:9092
       group-id: email-sender-group
+      key-deserializer: org.apache.kafka.common.serialization.LongDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
       properties:
-        spring:
-          json:
-            trusted.packages: com.walking.backend.domain.dto.MessageDto,com.walking.scheduler.domain.dto.MessageDto
-            type.mapping: MessageDto:com.walking.emailSender.dto.MessageDto
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
+        spring.json.trusted.packages: com.walking.backend.domain.dto.MessageDto,com.walking.scheduler.domain.dto.MessageDto
+        spring.json.type.mapping: MessageDto:com.walking.emailSender.dto.MessageDto
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.LongSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JacksonJsonSerializer
   mail:
     host: ${MAIL_HOST}
     port: ${MAIL_PORT}
@@ -25,3 +27,9 @@ spring:
         starttls.enable: true
 kafka:
   topic-name: EMAIL_SENDING_TASKS
+app:
+  kafka:
+    topic-name: email_sending_tasks
+    dlt-topic-name: email_sending_tasks-dlt
+    partitions: 1
+    replicas: 1
