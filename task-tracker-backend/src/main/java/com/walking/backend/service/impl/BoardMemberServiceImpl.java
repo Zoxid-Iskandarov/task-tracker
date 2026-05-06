@@ -77,8 +77,8 @@ public class BoardMemberServiceImpl implements BoardMemberService {
         board.getMembers().add(newMember);
         boardMemberRepository.flush();
 
-        kafkaProducerService.sendMessageDto(user.getId().toString(),
-                createBoardInvitationMessage(user, board.getName(), userDetails.username()));
+        kafkaProducerService.sendMessageDto(user.getId(), createBoardInvitationMessage(
+                user, board.getName(), userDetails.username()));
 
         return boardMemberResponseMapper.toDto(newMember);
     }

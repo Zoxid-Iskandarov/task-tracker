@@ -31,7 +31,7 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public AuthResponse signUp(SignUpRequest signUpRequest, HttpServletResponse response) {
         UserResponse userResponse = userService.createUser(signUpRequest);
-        kafkaProducerService.sendMessageDto(userResponse.id().toString(), createMessage(userResponse));
+        kafkaProducerService.sendMessageDto(userResponse.id(), createMessage(userResponse));
 
         return tokenService.generateTokens(userResponse.username(), userResponse.id(), response);
     }
