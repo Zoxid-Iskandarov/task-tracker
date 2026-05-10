@@ -1,11 +1,12 @@
 package com.walking.backend.service.impl;
 
+import com.walking.backend.audit.annotation.TrackActivity;
 import com.walking.backend.domain.dto.task.*;
 import com.walking.backend.domain.exception.*;
-import com.walking.backend.domain.model.Label;
-import com.walking.backend.domain.model.Task;
+import com.walking.backend.domain.model.*;
 import com.walking.backend.repository.TaskRepository;
 import com.walking.backend.repository.specification.TaskSpecification;
+import com.walking.backend.security.CustomUserDetails;
 import com.walking.backend.service.LabelService;
 import com.walking.backend.service.SectionService;
 import com.walking.backend.service.TaskService;
@@ -14,15 +15,19 @@ import com.walking.backend.service.mapper.task.TaskFullResponseMapper;
 import com.walking.backend.service.mapper.task.TaskPreviewResponseMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+
+import static com.walking.backend.domain.model.ActivityType.*;
 
 @Service
 @Transactional(readOnly = true)
@@ -34,6 +39,7 @@ public class TaskServiceImpl implements TaskService {
     private final CreateTaskRequestMapper createTaskRequestMapper;
     private final TaskFullResponseMapper taskFullResponseMapper;
     private final TaskPreviewResponseMapper taskPreviewResponseMapper;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     @Value("${app.label.max-per-task}")
     private final int maxLabelsPerTask;
@@ -75,6 +81,7 @@ public class TaskServiceImpl implements TaskService {
     @Override
     @Transactional
     @PreAuthorize("@resourceAccessService.canEditSection(#createTaskRequest.sectionId(), principal.id)")
+    @TrackActivity(type = TASK_CREATED, description = "'Created task ' + #result.title")
     public TaskFullResponse createTask(CreateTaskRequest createTaskRequest) {
         Task task = createTaskRequestMapper.toEntity(createTaskRequest);
         task.setIsCompleted(false);
@@ -94,14 +101,25 @@ public class TaskServiceImpl implements TaskService {
     @Transactional
     @PreAuthorize("@resourceAccessService.canEditTask(#taskId, principal.id)")
     public TaskFullResponse updateTask(UpdateTaskRequest updateTaskRequest, Long taskId) {
-        return taskRepository.findById(taskId)
-                .map(task -> {
-                    task.setTitle(updateTaskRequest.title());
-                    task.setDescription(updateTaskRequest.description());
-                    return taskRepository.save(task);
-                })
-                .map(taskFullResponseMapper::toDto)
+        Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ObjectNotFoundException("Task with id '%d' not found".formatted(taskId)));
+
+        String oldTitle = task.getTitle();
+        String newTitle = updateTaskRequest.title();
+        Board board = task.getSection().getBoard();
+
+        task.setTitle(newTitle);
+        task.setDescription(updateTaskRequest.description());
+
+        Task updatedTask = taskRepository.save(task);
+
+        String description = oldTitle.equals(newTitle)
+                ? "Updated task '%s'".formatted(newTitle)
+                : "Updated task from '%s' to '%s'".formatted(oldTitle, newTitle);
+
+        publishActivity(board.getId(), board.getName(), TASK_UPDATED, description);
+
+        return taskFullResponseMapper.toDto(updatedTask);
     }
 
     @Override
@@ -111,6 +129,10 @@ public class TaskServiceImpl implements TaskService {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ObjectNotFoundException("Task with id '%d' not found".formatted(taskId)));
 
+        Board board = task.getSection().getBoard();
+
+        publishActivity(board.getId(), board.getName(), TASK_DELETED, "Deleted task '%s'".formatted(task.getTitle()));
+
         taskRepository.delete(task);
     }
 
@@ -118,13 +140,25 @@ public class TaskServiceImpl implements TaskService {
     @Transactional
     @PreAuthorize("@resourceAccessService.canEditTask(#taskId, principal.id)")
     public TaskPreviewResponse toggleCompleted(Long taskId) {
-        return taskRepository.findById(taskId)
-                .map(task -> {
-                    task.setIsCompleted(!task.getIsCompleted());
-                    return taskRepository.save(task);
-                })
-                .map(taskPreviewResponseMapper::toDto)
+        Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ObjectNotFoundException("Task with id '%d' not found".formatted(taskId)));
+
+        task.setIsCompleted(!task.getIsCompleted());
+        Task toggledTask = taskRepository.save(task);
+
+        Board board = toggledTask.getSection().getBoard();
+
+        ActivityType type = toggledTask.getIsCompleted()
+                ? TASK_COMPLETED
+                : TASK_REOPENED;
+
+        String description = toggledTask.getIsCompleted()
+                ? "Task '%s' completed".formatted(task.getTitle())
+                : "Task '%s' reopened".formatted(task.getTitle());
+
+        publishActivity(board.getId(), board.getName(), type, description);
+
+        return taskPreviewResponseMapper.toDto(toggledTask);
     }
 
     @Override
@@ -171,7 +205,7 @@ public class TaskServiceImpl implements TaskService {
             newPosition = prev.getPosition() + positionStep;
         } else {
             if (Math.abs(prev.getPosition() - next.getPosition()) < 0.00001) {
-                reindexSection(moveTaskRequest.sectionId());
+                reindexSection(sectionId);
 
                 prev = taskRepository.findById(moveTaskRequest.prevTaskId()).orElseThrow();
                 next = taskRepository.findById(moveTaskRequest.nextTaskId()).orElseThrow();
@@ -180,10 +214,18 @@ public class TaskServiceImpl implements TaskService {
             newPosition = (next.getPosition() + prev.getPosition()) / 2;
         }
 
+        Section oldSection = task.getSection();
+        Board board = oldSection.getBoard();
+
         task.setPosition(newPosition);
-        task.setSection(sectionService.getProxySectionById(moveTaskRequest.sectionId()));
+        task.setSection(sectionService.getProxySectionById(sectionId));
 
         Task movedTask = taskRepository.save(task);
+
+        if (!oldSection.getId().equals(sectionId)) {
+            publishActivity(board.getId(), board.getName(), TASK_MOVED, "Moved task from section '%s' to '%s'"
+                    .formatted(oldSection.getName(), movedTask.getSection().getName()));
+        }
 
         return taskPreviewResponseMapper.toDto(movedTask);
     }
@@ -213,6 +255,11 @@ public class TaskServiceImpl implements TaskService {
                     .formatted(labelId, taskId));
         }
 
+        Board board = label.getBoard();
+
+        publishActivity(board.getId(), board.getName(),
+                TASK_LABEL_ADDED, "Added label '%s' to task '%s'".formatted(label.getName(), task.getTitle()));
+
         return taskPreviewResponseMapper.toDto(task);
     }
 
@@ -233,6 +280,12 @@ public class TaskServiceImpl implements TaskService {
         }
 
         task.getLabels().remove(label);
+
+        Board board = label.getBoard();
+
+        publishActivity(board.getId(), board.getName(),
+                TASK_LABEL_DELETED, "Deleted label '%s' from task '%s'".formatted(label.getName(), task.getTitle()));
+
         return taskPreviewResponseMapper.toDto(task);
     }
 
@@ -247,5 +300,22 @@ public class TaskServiceImpl implements TaskService {
         }
 
         taskRepository.saveAll(tasks);
+    }
+
+    private void publishActivity(Long boardId, String boardName, ActivityType type, String description) {
+        CustomUserDetails userDetails = getCurrentUser();
+
+        applicationEventPublisher.publishEvent(UserActivity.builder()
+                .userId(userDetails.id())
+                .username(userDetails.username())
+                .boardId(boardId)
+                .boardName(boardName)
+                .activityType(type)
+                .description(description)
+                .build());
+    }
+
+    private CustomUserDetails getCurrentUser() {
+        return (CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
     }
 }
