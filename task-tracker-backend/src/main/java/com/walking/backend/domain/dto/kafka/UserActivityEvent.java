@@ -1,0 +1,20 @@
+package com.walking.backend.domain.dto.kafka;
+
+import lombok.*;
+
+import java.time.LocalDateTime;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class UserActivityEvent {
+    private Long userId;
+    private String username;
+    private Long boardId;
+    private String boardName;
+    private String type;
+    private String description;
+    private LocalDateTime created;
+}
