@@ -1,5 +1,6 @@
 package com.walking.backend.web.controller;
 
+import com.walking.backend.domain.dto.activity.BoardActivityResponse;
 import com.walking.backend.domain.dto.board.BoardRequest;
 import com.walking.backend.domain.dto.board.BoardResponse;
 import com.walking.backend.domain.dto.boardMember.BoardMemberFilter;
@@ -36,6 +37,7 @@ public class BoardController {
     private final TaskService taskService;
     private final LabelService labelService;
     private final UserService userService;
+    private final UserActivityService userActivityService;
 
     @GetMapping
     public Page<BoardResponse> getBoards(
@@ -132,5 +134,11 @@ public class BoardController {
 
         return ResponseEntity.noContent()
                 .build();
+    }
+
+    @GetMapping("/{boardId}/activities")
+    public Page<BoardActivityResponse> getBoardActivities(
+            @PathVariable Long boardId, @PageableDefault(50) Pageable pageable) {
+        return userActivityService.getBoardActivities(boardId, pageable);
     }
 }
