@@ -1,4 +1,4 @@
-package com.walking.backend.security;
+package com.walking.backend.security.authentication;
 
 import com.walking.backend.domain.dto.auth.AuthResponse;
 import com.walking.backend.domain.exception.AuthException;

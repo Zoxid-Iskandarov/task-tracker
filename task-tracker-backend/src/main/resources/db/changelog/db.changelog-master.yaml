@@ -11,3 +11,5 @@ databaseChangeLog:
       file: db/changelog/V1_0_5__create_task.sql
   - include:
       file: db/changelog/V1_0_6__create_label.sql
+  - include:
+      file: db/changelog/V1_0_7__create_user_activity.sql

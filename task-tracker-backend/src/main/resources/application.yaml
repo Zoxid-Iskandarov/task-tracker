@@ -52,4 +52,8 @@ app:
   task:
     position-step: 10.0
   kafka:
-    topic-name: email_sending_tasks
+    topics:
+      email-sending: email_sending_tasks
+      user-activity: user_activities
+    partitions: 1
+    replicas: 1

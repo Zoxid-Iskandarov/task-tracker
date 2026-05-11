@@ -6,7 +6,7 @@ import com.walking.backend.domain.dto.auth.SignUpRequest;
 import com.walking.backend.domain.dto.kafka.MessageDto;
 import com.walking.backend.domain.dto.user.UserResponse;
 import com.walking.backend.domain.exception.AuthException;
-import com.walking.backend.security.TokenService;
+import com.walking.backend.security.authentication.TokenService;
 import com.walking.backend.service.AuthService;
 import com.walking.backend.service.KafkaProducerService;
 import com.walking.backend.service.UserService;

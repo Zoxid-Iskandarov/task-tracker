@@ -4,7 +4,7 @@ import com.walking.backend.domain.dto.boardMember.BoardMemberFilter;
 import com.walking.backend.domain.dto.boardMember.BoardMemberRequest;
 import com.walking.backend.domain.dto.boardMember.BoardMemberResponse;
 import com.walking.backend.domain.model.BoardMember;
-import com.walking.backend.security.CustomUserDetails;
+import com.walking.backend.security.principal.CustomUserDetails;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
