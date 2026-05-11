@@ -1,6 +1,6 @@
 package com.walking.backend.config;
 
-import com.walking.backend.security.CustomUserDetailsService;
+import com.walking.backend.security.authentication.CustomUserDetailsService;
 import com.walking.backend.security.filter.JwtFilter;
 import com.walking.backend.security.handler.CustomAccessDeniedHandler;
 import com.walking.backend.security.handler.CustomAuthenticationEntryPoint;

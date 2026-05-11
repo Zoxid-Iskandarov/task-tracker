@@ -8,7 +8,7 @@ import com.walking.backend.domain.dto.section.SectionResponse;
 import com.walking.backend.domain.dto.task.TaskFullResponse;
 import com.walking.backend.domain.model.UserActivity;
 import com.walking.backend.domain.projection.BoardInfo;
-import com.walking.backend.security.CustomUserDetails;
+import com.walking.backend.security.principal.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.JoinPoint;

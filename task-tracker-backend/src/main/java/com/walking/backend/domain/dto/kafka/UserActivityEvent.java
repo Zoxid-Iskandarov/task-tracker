@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 public class UserActivityEvent {
     private Long userId;
     private String username;
+    private String email;
     private Long boardId;
     private String boardName;
     private String type;

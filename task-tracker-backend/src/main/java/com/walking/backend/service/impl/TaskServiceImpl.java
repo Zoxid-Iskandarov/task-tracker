@@ -6,7 +6,7 @@ import com.walking.backend.domain.exception.*;
 import com.walking.backend.domain.model.*;
 import com.walking.backend.repository.TaskRepository;
 import com.walking.backend.repository.specification.TaskSpecification;
-import com.walking.backend.security.CustomUserDetails;
+import com.walking.backend.security.principal.CustomUserDetails;
 import com.walking.backend.service.LabelService;
 import com.walking.backend.service.SectionService;
 import com.walking.backend.service.TaskService;

@@ -25,6 +25,7 @@ public class UserActivityListener {
         UserActivityEvent event = UserActivityEvent.builder()
                 .userId(savedUserActivity.getUserId())
                 .username(savedUserActivity.getUsername())
+                .email(savedUserActivity.getEmail())
                 .boardId(savedUserActivity.getBoardId())
                 .boardName(savedUserActivity.getBoardName())
                 .type(savedUserActivity.getActivityType().name())

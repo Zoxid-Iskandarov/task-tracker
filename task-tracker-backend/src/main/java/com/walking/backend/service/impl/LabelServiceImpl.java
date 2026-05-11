@@ -12,7 +12,7 @@ import com.walking.backend.domain.model.Board;
 import com.walking.backend.domain.model.Label;
 import com.walking.backend.domain.model.UserActivity;
 import com.walking.backend.repository.LabelRepository;
-import com.walking.backend.security.CustomUserDetails;
+import com.walking.backend.security.principal.CustomUserDetails;
 import com.walking.backend.service.BoardService;
 import com.walking.backend.service.LabelService;
 import com.walking.backend.service.mapper.label.CreateLabelRequestMapper;

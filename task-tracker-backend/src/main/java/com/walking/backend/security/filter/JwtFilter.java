@@ -1,9 +1,9 @@
 package com.walking.backend.security.filter;
 
 import com.walking.backend.domain.exception.AuthException;
-import com.walking.backend.security.CustomUserDetails;
-import com.walking.backend.security.CustomUserDetailsService;
-import com.walking.backend.security.JwtService;
+import com.walking.backend.security.principal.CustomUserDetails;
+import com.walking.backend.security.authentication.CustomUserDetailsService;
+import com.walking.backend.security.authentication.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

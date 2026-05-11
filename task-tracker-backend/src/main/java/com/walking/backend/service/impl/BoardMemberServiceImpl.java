@@ -11,7 +11,7 @@ import com.walking.backend.domain.exception.ObjectNotFoundException;
 import com.walking.backend.domain.model.*;
 import com.walking.backend.repository.BoardMemberRepository;
 import com.walking.backend.repository.specification.BoardMemberSpecification;
-import com.walking.backend.security.CustomUserDetails;
+import com.walking.backend.security.principal.CustomUserDetails;
 import com.walking.backend.service.BoardMemberService;
 import com.walking.backend.service.BoardService;
 import com.walking.backend.service.KafkaProducerService;

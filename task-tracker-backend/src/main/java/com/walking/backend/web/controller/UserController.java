@@ -2,7 +2,7 @@ package com.walking.backend.web.controller;
 
 import com.walking.backend.domain.dto.activity.UserActivityResponse;
 import com.walking.backend.domain.dto.user.UserResponse;
-import com.walking.backend.security.CustomUserDetails;
+import com.walking.backend.security.principal.CustomUserDetails;
 import com.walking.backend.service.UserActivityService;
 import com.walking.backend.service.UserService;
 import lombok.RequiredArgsConstructor;

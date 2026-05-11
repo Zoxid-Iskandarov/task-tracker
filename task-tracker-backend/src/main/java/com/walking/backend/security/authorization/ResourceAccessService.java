@@ -1,4 +1,4 @@
-package com.walking.backend.security;
+package com.walking.backend.security.authorization;
 
 import com.walking.backend.domain.model.BoardRole;
 import com.walking.backend.repository.*;

@@ -1,6 +1,6 @@
 package com.walking.backend.security.handler;
 
-import com.walking.backend.security.TokenService;
+import com.walking.backend.security.authentication.TokenService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

@@ -11,7 +11,7 @@ import com.walking.backend.domain.model.Board;
 import com.walking.backend.domain.model.Section;
 import com.walking.backend.domain.model.UserActivity;
 import com.walking.backend.repository.SectionRepository;
-import com.walking.backend.security.CustomUserDetails;
+import com.walking.backend.security.principal.CustomUserDetails;
 import com.walking.backend.service.BoardService;
 import com.walking.backend.service.SectionService;
 import com.walking.backend.service.mapper.section.CreateSectionRequestMapper;

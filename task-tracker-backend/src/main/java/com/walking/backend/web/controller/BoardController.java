@@ -12,7 +12,7 @@ import com.walking.backend.domain.dto.task.TaskFilter;
 import com.walking.backend.domain.dto.task.TaskPreviewResponse;
 import com.walking.backend.domain.dto.user.UserResponse;
 import com.walking.backend.domain.dto.user.UserSearchFilter;
-import com.walking.backend.security.CustomUserDetails;
+import com.walking.backend.security.principal.CustomUserDetails;
 import com.walking.backend.service.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
