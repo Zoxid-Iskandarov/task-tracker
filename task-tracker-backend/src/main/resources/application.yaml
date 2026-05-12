@@ -35,7 +35,9 @@ spring:
         retry.backoff.ms: 500
         spring.json:
           add.type.headers: true
-          type.mapping: MessageDto:com.walking.backend.domain.dto.kafka.MessageDto
+          type.mapping: >
+            MessageDto:com.walking.backend.domain.dto.kafka.MessageDto,
+            UserActivityEvent:com.walking.backend.domain.dto.kafka.UserActivityEvent
 security:
   jwt:
     secret: ${JWT_SECRET}

@@ -1,5 +1,6 @@
 package com.walking.backend.audit.listener;
 
+import com.walking.backend.domain.dto.activity.UserActivityInternalEvent;
 import com.walking.backend.domain.dto.kafka.UserActivityEvent;
 import com.walking.backend.domain.model.UserActivity;
 import com.walking.backend.repository.UserActivityRepository;
@@ -19,17 +20,26 @@ public class UserActivityListener {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void handleUserActivity(UserActivity userActivity) {
+    public void handleUserActivity(UserActivityInternalEvent userActivityInternalEvent) {
+        UserActivity userActivity = UserActivity.builder()
+                .userId(userActivityInternalEvent.userId())
+                .username(userActivityInternalEvent.username())
+                .boardId(userActivityInternalEvent.boardId())
+                .boardName(userActivityInternalEvent.boardName())
+                .activityType(userActivityInternalEvent.type())
+                .description(userActivityInternalEvent.description())
+                .build();
+
         UserActivity savedUserActivity = userActivityRepository.save(userActivity);
 
         UserActivityEvent event = UserActivityEvent.builder()
-                .userId(savedUserActivity.getUserId())
-                .username(savedUserActivity.getUsername())
-                .email(savedUserActivity.getEmail())
-                .boardId(savedUserActivity.getBoardId())
-                .boardName(savedUserActivity.getBoardName())
-                .type(savedUserActivity.getActivityType().name())
-                .description(savedUserActivity.getDescription())
+                .userId(userActivityInternalEvent.userId())
+                .username(userActivityInternalEvent.username())
+                .email(userActivityInternalEvent.email())
+                .boardId(userActivityInternalEvent.boardId())
+                .boardName(userActivityInternalEvent.boardName())
+                .type(userActivityInternalEvent.type().name())
+                .description(userActivityInternalEvent.description())
                 .created(savedUserActivity.getCreated())
                 .build();
 

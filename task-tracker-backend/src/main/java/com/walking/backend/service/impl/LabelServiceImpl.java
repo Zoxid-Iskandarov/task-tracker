@@ -1,6 +1,7 @@
 package com.walking.backend.service.impl;
 
 import com.walking.backend.audit.annotation.TrackActivity;
+import com.walking.backend.domain.dto.activity.UserActivityInternalEvent;
 import com.walking.backend.domain.dto.label.CreateLabelRequest;
 import com.walking.backend.domain.dto.label.LabelResponse;
 import com.walking.backend.domain.dto.label.UpdateLabelRequest;
@@ -10,7 +11,6 @@ import com.walking.backend.domain.exception.ObjectNotFoundException;
 import com.walking.backend.domain.model.ActivityType;
 import com.walking.backend.domain.model.Board;
 import com.walking.backend.domain.model.Label;
-import com.walking.backend.domain.model.UserActivity;
 import com.walking.backend.repository.LabelRepository;
 import com.walking.backend.security.principal.CustomUserDetails;
 import com.walking.backend.service.BoardService;
@@ -133,14 +133,14 @@ public class LabelServiceImpl implements LabelService {
     private void publishActivity(Long boardId, String boardName, ActivityType type, String description) {
         CustomUserDetails userDetails = getCurrentUser();
 
-        applicationEventPublisher.publishEvent(UserActivity.builder()
-                .userId(userDetails.id())
-                .username(userDetails.username())
-                .boardId(boardId)
-                .boardName(boardName)
-                .activityType(type)
-                .description(description)
-                .build());
+        applicationEventPublisher.publishEvent(new UserActivityInternalEvent(
+                userDetails.id(),
+                userDetails.username(),
+                userDetails.email(),
+                boardId,
+                boardName,
+                type,
+                description));
     }
 
     private CustomUserDetails getCurrentUser() {

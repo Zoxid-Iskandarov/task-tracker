@@ -1,6 +1,7 @@
 package com.walking.backend.service.impl;
 
 import com.walking.backend.audit.annotation.TrackActivity;
+import com.walking.backend.domain.dto.activity.UserActivityInternalEvent;
 import com.walking.backend.domain.dto.boardMember.BoardMemberFilter;
 import com.walking.backend.domain.dto.boardMember.BoardMemberRequest;
 import com.walking.backend.domain.dto.boardMember.BoardMemberResponse;
@@ -143,14 +144,14 @@ public class BoardMemberServiceImpl implements BoardMemberService {
     private void publishActivity(Long boardId, String boardName, ActivityType type, String description) {
         CustomUserDetails userDetails = getCurrentUser();
 
-        applicationEventPublisher.publishEvent(UserActivity.builder()
-                .userId(userDetails.id())
-                .username(userDetails.username())
-                .boardId(boardId)
-                .boardName(boardName)
-                .activityType(type)
-                .description(description)
-                .build());
+        applicationEventPublisher.publishEvent(new UserActivityInternalEvent(
+                userDetails.id(),
+                userDetails.username(),
+                userDetails.email(),
+                boardId,
+                boardName,
+                type,
+                description));
     }
 
     private CustomUserDetails getCurrentUser() {
@@ -159,19 +160,19 @@ public class BoardMemberServiceImpl implements BoardMemberService {
 
     private MessageDto createBoardInvitationMessage(User user, String boardName, String inviterName) {
         String message = """
-            Hello, %s!
-            
-            You have been added to the board "%s" in Task Tracker.
-            
-            Added by: %s
-            
-            You can now access the board, view tasks, and collaborate depending on your role.
-            
-            Open Task Tracker to get started.
-            
-            Best regards,
-            Task Tracker Team
-            """.formatted(user.getUsername(), boardName, inviterName);
+                Hello, %s!
+                
+                You have been added to the board "%s" in Task Tracker.
+                
+                Added by: %s
+                
+                You can now access the board, view tasks, and collaborate depending on your role.
+                
+                Open Task Tracker to get started.
+                
+                Best regards,
+                Task Tracker Team
+                """.formatted(user.getUsername(), boardName, inviterName);
 
         return new MessageDto(user.getEmail(), "You've been added to a board", message);
     }

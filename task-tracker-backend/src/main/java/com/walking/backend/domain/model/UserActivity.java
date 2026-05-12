@@ -26,9 +26,6 @@ public class UserActivity {
     @Column(nullable = false, updatable = false)
     private String username;
 
-    @Column(nullable = false, updatable = false)
-    private String email;
-
     @Column(name = "board_id", nullable = false, updatable = false)
     private Long boardId;
 

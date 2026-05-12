@@ -1,12 +1,12 @@
 package com.walking.backend.audit.aspect;
 
-import com.walking.backend.audit.service.BoardLookupService;
 import com.walking.backend.audit.annotation.TrackActivity;
+import com.walking.backend.audit.service.BoardLookupService;
+import com.walking.backend.domain.dto.activity.UserActivityInternalEvent;
 import com.walking.backend.domain.dto.board.BoardResponse;
 import com.walking.backend.domain.dto.label.LabelResponse;
 import com.walking.backend.domain.dto.section.SectionResponse;
 import com.walking.backend.domain.dto.task.TaskFullResponse;
-import com.walking.backend.domain.model.UserActivity;
 import com.walking.backend.domain.projection.BoardInfo;
 import com.walking.backend.security.principal.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
@@ -53,14 +53,14 @@ public class ActivityAspect {
 
         BoardInfo boardInfo = resolveBoardInfo(result, context);
 
-        applicationEventPublisher.publishEvent(UserActivity.builder()
-                .userId(userDetails.id())
-                .username(userDetails.username())
-                .boardId(boardInfo.id())
-                .boardName(boardInfo.name())
-                .activityType(trackActivity.type())
-                .description(description)
-                .build());
+        applicationEventPublisher.publishEvent(new UserActivityInternalEvent(
+                userDetails.id(),
+                userDetails.username(),
+                userDetails.email(),
+                boardInfo.id(),
+                boardInfo.name(),
+                trackActivity.type(),
+                description));
     }
 
     private BoardInfo resolveBoardInfo(Object result, EvaluationContext context) {

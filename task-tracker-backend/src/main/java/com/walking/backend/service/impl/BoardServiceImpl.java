@@ -1,6 +1,7 @@
 package com.walking.backend.service.impl;
 
 import com.walking.backend.audit.annotation.TrackActivity;
+import com.walking.backend.domain.dto.activity.UserActivityInternalEvent;
 import com.walking.backend.domain.dto.board.BoardRequest;
 import com.walking.backend.domain.dto.board.BoardResponse;
 import com.walking.backend.domain.exception.ObjectNotFoundException;
@@ -94,14 +95,14 @@ public class BoardServiceImpl implements BoardService {
     private void publishActivity(Long boardId, String boardName, ActivityType type, String description) {
         CustomUserDetails userDetails = getCurrentUser();
 
-        applicationEventPublisher.publishEvent(UserActivity.builder()
-                .userId(userDetails.id())
-                .username(userDetails.username())
-                .boardId(boardId)
-                .boardName(boardName)
-                .activityType(type)
-                .description(description)
-                .build());
+        applicationEventPublisher.publishEvent(new UserActivityInternalEvent(
+                userDetails.id(),
+                userDetails.username(),
+                userDetails.email(),
+                boardId,
+                boardName,
+                type,
+                description));
     }
 
     private CustomUserDetails getCurrentUser() {
