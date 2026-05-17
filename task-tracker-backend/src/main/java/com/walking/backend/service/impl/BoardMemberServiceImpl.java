@@ -59,20 +59,20 @@ public class BoardMemberServiceImpl implements BoardMemberService {
     @Override
     public BoardMember getById(Long boardId, Long userId) {
         return boardMemberRepository.findByIdBoardIdAndIdUserId(boardId, userId)
-                .orElseThrow(() -> new ObjectNotFoundException("Member with id '%d' in board with id '%d' not found"
+                .orElseThrow(() -> new ObjectNotFoundException("Member with id %d in board with id %d not found"
                         .formatted(userId, boardId)));
     }
 
     @Override
     @Transactional
     @PreAuthorize("@resourceAccessService.canManageBoard(#boardId, #userDetails.id())")
-    @TrackActivity(type = MEMBER_ADDED, description = "'Added new member ' + #result.username")
+    @TrackActivity(type = MEMBER_ADDED, description = "'Added member ' + #result.username")
     public BoardMemberResponse addMember(
             Long boardId,
             BoardMemberRequest boardMemberRequest,
             CustomUserDetails userDetails) {
         if (boardMemberRepository.existsByIdBoardIdAndIdUserId(boardId, boardMemberRequest.userId())) {
-            throw new DuplicateException("User with id '%d' already exists in board members"
+            throw new DuplicateException("User with id %d is already a member of this board"
                     .formatted(boardMemberRequest.userId()));
         }
 
@@ -100,7 +100,7 @@ public class BoardMemberServiceImpl implements BoardMemberService {
         BoardMember boardMember = getById(boardId, userId);
 
         publishActivity(boardId, boardMember.getBoard().getName(),
-                MEMBER_REMOVED, "Removed member '%s'".formatted(boardMember.getUser().getUsername()));
+                MEMBER_REMOVED, "Removed member %s".formatted(boardMember.getUser().getUsername()));
 
         boardMemberRepository.delete(boardMember);
     }
@@ -122,7 +122,7 @@ public class BoardMemberServiceImpl implements BoardMemberService {
         boardMemberRepository.flush();
 
         publishActivity(boardId, boardMember.getBoard().getName(), MEMBER_ROLE_CHANGED,
-                "Changed role for user '%s' from '%s' to '%s'".formatted(boardMember.getUser().getUsername(), oldRole, newRole));
+                "Changed role for %s from %s to %s".formatted(boardMember.getUser().getUsername(), oldRole, newRole));
 
         return boardMemberResponseMapper.toDto(boardMember);
     }

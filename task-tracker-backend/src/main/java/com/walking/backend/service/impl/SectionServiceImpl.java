@@ -57,8 +57,8 @@ public class SectionServiceImpl implements SectionService {
     @TrackActivity(type = SECTION_CREATED, description = "'Created section ' + #result.name")
     public SectionResponse createSection(CreateSectionRequest createSectionRequest) {
         if (sectionRepository.existsSectionByNameAndBoardId(createSectionRequest.name(), createSectionRequest.boardId())) {
-            throw new DuplicateException("Section with name '%s' in board with id '%d' already exists"
-                    .formatted(createSectionRequest.name(), createSectionRequest.boardId()));
+            throw new DuplicateException("Section %s already exists in this board"
+                    .formatted(createSectionRequest.name()));
         }
 
         return Optional.of(createSectionRequest)
@@ -76,12 +76,12 @@ public class SectionServiceImpl implements SectionService {
     @PreAuthorize("@resourceAccessService.canEditSection(#sectionId, principal.id)")
     public SectionResponse updateSection(UpdateSectionRequest updateSectionRequest, Long sectionId) {
         Section section = sectionRepository.findById(sectionId)
-                .orElseThrow(() -> new ObjectNotFoundException("Section with id '%d' not found".formatted(sectionId)));
+                .orElseThrow(() -> new ObjectNotFoundException("Section with id %d not found".formatted(sectionId)));
 
         if (sectionRepository.existsByNameAndBoardIdAndIdNot(
                 updateSectionRequest.name(), section.getBoard().getId(), sectionId)) {
-            throw new DuplicateException("Section with name '%s' in board with id '%d' already exists"
-                    .formatted(updateSectionRequest.name(), section.getBoard().getId()));
+            throw new DuplicateException("Section %s already exists in this board"
+                    .formatted(updateSectionRequest.name()));
         }
 
         String oldName = section.getName();
@@ -93,7 +93,7 @@ public class SectionServiceImpl implements SectionService {
         Section savedSection = sectionRepository.save(section);
 
         publishActivity(board.getId(), board.getName(),
-                SECTION_UPDATED, "Updated section from '%s' to '%s'".formatted(oldName, newName));
+                SECTION_UPDATED, "Renamed section from %s to %s".formatted(oldName, newName));
 
         return sectionResponseMapper.toDto(savedSection);
     }
@@ -103,12 +103,12 @@ public class SectionServiceImpl implements SectionService {
     @PreAuthorize("@resourceAccessService.canEditSection(#sectionId, principal.id)")
     public void deleteSection(Long sectionId) {
         Section section = sectionRepository.findById(sectionId)
-                .orElseThrow(() -> new ObjectNotFoundException("Section with id '%d' not found".formatted(sectionId)));
+                .orElseThrow(() -> new ObjectNotFoundException("Section with id %d not found".formatted(sectionId)));
 
         Board board = section.getBoard();
 
         publishActivity(board.getId(), board.getName(),
-                SECTION_DELETED, "Deleted section '%s'".formatted(section.getName()));
+                SECTION_DELETED, "Deleted section %s".formatted(section.getName()));
 
         sectionRepository.delete(section);
     }
