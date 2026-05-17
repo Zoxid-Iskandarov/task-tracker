@@ -64,7 +64,7 @@ public class BoardServiceImpl implements BoardService {
     @PreAuthorize("@resourceAccessService.canManageBoard(#boardId, principal.id)")
     public BoardResponse updateBoard(BoardRequest boardRequest, Long boardId) {
         Board board = boardRepository.findById(boardId)
-                .orElseThrow(() -> new ObjectNotFoundException("Board with id '%d' not found".formatted(boardId)));
+                .orElseThrow(() -> new ObjectNotFoundException("Board with id %d not found".formatted(boardId)));
 
         String oldName = board.getName();
         String newName = boardRequest.name();
@@ -73,7 +73,7 @@ public class BoardServiceImpl implements BoardService {
 
         Board updatedBoard = boardRepository.save(board);
 
-        publishActivity(boardId, newName, BOARD_UPDATED, "Updated board from '%s' to '%s'".formatted(oldName, newName));
+        publishActivity(boardId, newName, BOARD_UPDATED, "Renamed board from %s to %s".formatted(oldName, newName));
 
         return boardResponseMapper.toDto(updatedBoard);
     }
@@ -83,11 +83,11 @@ public class BoardServiceImpl implements BoardService {
     @PreAuthorize("@resourceAccessService.canManageBoard(#boardId, principal.id)")
     public void deleteBoard(Long boardId) {
         Board board = boardRepository.findById(boardId)
-                .orElseThrow(() -> new ObjectNotFoundException("Board with id '%d' not found".formatted(boardId)));
+                .orElseThrow(() -> new ObjectNotFoundException("Board with id %d not found".formatted(boardId)));
 
         String boardName = board.getName();
 
-        publishActivity(boardId, boardName, BOARD_DELETED, "Deleted board '%s'".formatted(boardName));
+        publishActivity(boardId, boardName, BOARD_DELETED, "Deleted board %s".formatted(boardName));
 
         boardRepository.delete(board);
     }

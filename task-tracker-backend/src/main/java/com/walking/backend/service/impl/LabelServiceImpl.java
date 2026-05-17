@@ -58,7 +58,7 @@ public class LabelServiceImpl implements LabelService {
     @Override
     public Label getLabelById(Long labelId) {
         return labelRepository.findById(labelId)
-                .orElseThrow(() -> new ObjectNotFoundException("Label with id '%d' not found".formatted(labelId)));
+                .orElseThrow(() -> new ObjectNotFoundException("Label with id %d not found".formatted(labelId)));
     }
 
     @Override
@@ -67,13 +67,12 @@ public class LabelServiceImpl implements LabelService {
     @TrackActivity(type = LABEL_CREATED, description = "'Created label ' + #result.name")
     public LabelResponse createLabel(CreateLabelRequest createLabelRequest) {
         if (labelRepository.countByBoardId(createLabelRequest.boardId()) >= maxLabelsPerBoard) {
-            throw new LabelLimitExceededException("Cannot add more than '%d' labels to a board"
+            throw new LabelLimitExceededException("Board cannot contain more than %d labels"
                     .formatted(maxLabelsPerBoard));
         }
 
         if (labelRepository.existsByNameAndBoardId(createLabelRequest.name(), createLabelRequest.boardId())) {
-            throw new DuplicateException("Label with name '%s' in board with id '%d' already exists"
-                    .formatted(createLabelRequest.name(), createLabelRequest.boardId()));
+            throw new DuplicateException("Label %s already exists in this board".formatted(createLabelRequest.name()));
         }
 
         return Optional.of(createLabelRequest)
@@ -91,11 +90,10 @@ public class LabelServiceImpl implements LabelService {
     @PreAuthorize("@resourceAccessService.canManageLabel(#labelId, principal.id)")
     public LabelResponse updateLabel(UpdateLabelRequest labelRequest, Long labelId) {
         Label label = labelRepository.findById(labelId)
-                .orElseThrow(() -> new ObjectNotFoundException("Label with id '%d' not found".formatted(labelId)));
+                .orElseThrow(() -> new ObjectNotFoundException("Label with id %d not found".formatted(labelId)));
 
         if (labelRepository.existsByNameAndBoardIdAndIdNot(labelRequest.name(), label.getBoard().getId(), labelId)) {
-            throw new DuplicateException("Label with name '%s' in board with id '%d' already exists"
-                    .formatted(labelRequest.name(), label.getBoard().getId()));
+            throw new DuplicateException("Label %s already exists in this board".formatted(labelRequest.name()));
         }
 
         String oldName = label.getName();
@@ -108,8 +106,8 @@ public class LabelServiceImpl implements LabelService {
         Label savedLabel = labelRepository.save(label);
 
         String description = oldName.equals(newName)
-                ? "Updated label '%s'".formatted(newName)
-                : "Updated label from '%s' to '%s'".formatted(oldName, newName);
+                ? "Updated label %s".formatted(newName)
+                : "Renamed label from %s to %s".formatted(oldName, newName);
 
         publishActivity(board.getId(), board.getName(), LABEL_UPDATED, description);
 
@@ -121,11 +119,11 @@ public class LabelServiceImpl implements LabelService {
     @PreAuthorize("@resourceAccessService.canManageLabel(#labelId, principal.id)")
     public void deleteLabel(Long labelId) {
         Label label = labelRepository.findById(labelId)
-                .orElseThrow(() -> new ObjectNotFoundException("Label with id '%d' not found".formatted(labelId)));
+                .orElseThrow(() -> new ObjectNotFoundException("Label with id %d not found".formatted(labelId)));
 
         Board board = label.getBoard();
 
-        publishActivity(board.getId(), board.getName(), LABEL_DELETED, "Deleted label '%s'".formatted(label.getName()));
+        publishActivity(board.getId(), board.getName(), LABEL_DELETED, "Deleted label %s".formatted(label.getName()));
 
         labelRepository.delete(label);
     }

@@ -39,7 +39,7 @@ public class UserServiceImpl implements UserService {
     public UserResponse getUserByUsername(String username) {
         return userRepository.findByUsername(username)
                 .map(userResponseMapper::toDto)
-                .orElseThrow(() -> new ObjectNotFoundException("User '%s' not found".formatted(username)));
+                .orElseThrow(() -> new ObjectNotFoundException("User %s not found".formatted(username)));
     }
 
     @Override
@@ -50,18 +50,18 @@ public class UserServiceImpl implements UserService {
     @Override
     public User getUserById(Long userId) {
         return userRepository.findById(userId)
-                .orElseThrow(() -> new ObjectNotFoundException("User with id '%d' not found".formatted(userId)));
+                .orElseThrow(() -> new ObjectNotFoundException("User with id %d not found".formatted(userId)));
     }
 
     @Override
     @Transactional
     public UserResponse createUser(SignUpRequest signUpRequest) {
         if (userRepository.findByUsername(signUpRequest.username()).isPresent()) {
-            throw new DuplicateException("This username '%s' is already taken".formatted(signUpRequest.username()));
+            throw new DuplicateException("Username %s is already taken".formatted(signUpRequest.username()));
         }
 
         if (userRepository.findByEmail(signUpRequest.email()).isPresent()) {
-            throw new DuplicateException("This email '%s' is already taken".formatted(signUpRequest.email()));
+            throw new DuplicateException("Email %s is already taken".formatted(signUpRequest.email()));
         }
 
         return Optional.of(signUpRequest)

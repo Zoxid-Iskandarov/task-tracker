@@ -76,7 +76,7 @@ public class TaskServiceImpl implements TaskService {
     public TaskFullResponse getTaskById(Long taskId) {
         return taskRepository.findByIdWithLabels(taskId)
                 .map(taskFullResponseMapper::toDto)
-                .orElseThrow(() -> new ObjectNotFoundException("Task with id '%d' not found".formatted(taskId)));
+                .orElseThrow(() -> new ObjectNotFoundException("Task with id %d not found".formatted(taskId)));
     }
 
     @Override
@@ -103,7 +103,7 @@ public class TaskServiceImpl implements TaskService {
     @PreAuthorize("@resourceAccessService.canEditTask(#taskId, principal.id)")
     public TaskFullResponse updateTask(UpdateTaskRequest updateTaskRequest, Long taskId) {
         Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new ObjectNotFoundException("Task with id '%d' not found".formatted(taskId)));
+                .orElseThrow(() -> new ObjectNotFoundException("Task with id %d not found".formatted(taskId)));
 
         String oldTitle = task.getTitle();
         String newTitle = updateTaskRequest.title();
@@ -115,8 +115,8 @@ public class TaskServiceImpl implements TaskService {
         Task updatedTask = taskRepository.save(task);
 
         String description = oldTitle.equals(newTitle)
-                ? "Updated task '%s'".formatted(newTitle)
-                : "Updated task from '%s' to '%s'".formatted(oldTitle, newTitle);
+                ? "Updated task %s".formatted(newTitle)
+                : "Renamed task from %s to %s".formatted(oldTitle, newTitle);
 
         publishActivity(board.getId(), board.getName(), TASK_UPDATED, description);
 
@@ -128,11 +128,11 @@ public class TaskServiceImpl implements TaskService {
     @PreAuthorize("@resourceAccessService.canEditTask(#taskId, principal.id)")
     public void deleteTask(Long taskId) {
         Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new ObjectNotFoundException("Task with id '%d' not found".formatted(taskId)));
+                .orElseThrow(() -> new ObjectNotFoundException("Task with id %d not found".formatted(taskId)));
 
         Board board = task.getSection().getBoard();
 
-        publishActivity(board.getId(), board.getName(), TASK_DELETED, "Deleted task '%s'".formatted(task.getTitle()));
+        publishActivity(board.getId(), board.getName(), TASK_DELETED, "Deleted task %s".formatted(task.getTitle()));
 
         taskRepository.delete(task);
     }
@@ -142,7 +142,7 @@ public class TaskServiceImpl implements TaskService {
     @PreAuthorize("@resourceAccessService.canEditTask(#taskId, principal.id)")
     public TaskPreviewResponse toggleCompleted(Long taskId) {
         Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new ObjectNotFoundException("Task with id '%d' not found".formatted(taskId)));
+                .orElseThrow(() -> new ObjectNotFoundException("Task with id %d not found".formatted(taskId)));
 
         task.setIsCompleted(!task.getIsCompleted());
         Task toggledTask = taskRepository.save(task);
@@ -154,8 +154,8 @@ public class TaskServiceImpl implements TaskService {
                 : TASK_REOPENED;
 
         String description = toggledTask.getIsCompleted()
-                ? "Task '%s' completed".formatted(task.getTitle())
-                : "Task '%s' reopened".formatted(task.getTitle());
+                ? "Completed task %s".formatted(task.getTitle())
+                : "Reopened task %s".formatted(task.getTitle());
 
         publishActivity(board.getId(), board.getName(), type, description);
 
@@ -170,7 +170,7 @@ public class TaskServiceImpl implements TaskService {
             """)
     public TaskPreviewResponse moveTask(Long taskId, MoveTaskRequest moveTaskRequest) {
         Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new ObjectNotFoundException("Task with id '%d' not found".formatted(taskId)));
+                .orElseThrow(() -> new ObjectNotFoundException("Task with id %d not found".formatted(taskId)));
 
         Long sectionId = moveTaskRequest.sectionId();
         Task prev = null;
@@ -179,18 +179,18 @@ public class TaskServiceImpl implements TaskService {
         if (moveTaskRequest.prevTaskId() != null) {
             prev = taskRepository.findByIdAndSectionId(moveTaskRequest.prevTaskId(), sectionId)
                     .orElseThrow(() -> new TaskMoveException(
-                            "prevTaskId '%d' does not exist in target section".formatted(moveTaskRequest.prevTaskId())
+                            "Previous task %d does not exist in target section".formatted(moveTaskRequest.prevTaskId())
                     ));
         }
         if (moveTaskRequest.nextTaskId() != null) {
             next = taskRepository.findByIdAndSectionId(moveTaskRequest.nextTaskId(), sectionId)
                     .orElseThrow(() -> new TaskMoveException(
-                            "nextTaskId '%d' does not exist in target section".formatted(moveTaskRequest.nextTaskId())
+                            "Next task %d does not exist in target section".formatted(moveTaskRequest.nextTaskId())
                     ));
         }
 
         if (prev != null && next != null && prev.getId().equals(next.getId())) {
-            throw new TaskMoveException("Arguments prevTaskId and nextTaskId cannot be the same");
+            throw new TaskMoveException("Previous and next tasks cannot be the same");
         }
         if ((prev != null && task.getId().equals(prev.getId())) ||
                 (next != null && task.getId().equals(next.getId()))) {
@@ -224,7 +224,7 @@ public class TaskServiceImpl implements TaskService {
         Task movedTask = taskRepository.save(task);
 
         if (!oldSection.getId().equals(sectionId)) {
-            publishActivity(board.getId(), board.getName(), TASK_MOVED, "Moved task from section '%s' to '%s'"
+            publishActivity(board.getId(), board.getName(), TASK_MOVED, "Moved task from section %s to %s"
                     .formatted(oldSection.getName(), movedTask.getSection().getName()));
         }
 
@@ -239,27 +239,26 @@ public class TaskServiceImpl implements TaskService {
             """)
     public TaskPreviewResponse addLabelToTask(Long taskId, Long labelId) {
         Task task = taskRepository.findByIdWithLabels(taskId)
-                .orElseThrow(() -> new ObjectNotFoundException("Task with id '%d' not found".formatted(taskId)));
+                .orElseThrow(() -> new ObjectNotFoundException("Task with id %d not found".formatted(taskId)));
 
         if (task.getLabels().size() >= maxLabelsPerTask) {
-            throw new LabelLimitExceededException("Task cannot have more than '%d' labels".formatted(maxLabelsPerTask));
+            throw new LabelLimitExceededException("Task cannot contain more than %d labels".formatted(maxLabelsPerTask));
         }
 
         Label label = labelService.getLabelById(labelId);
 
         if (!task.getSection().getBoard().getId().equals(label.getBoard().getId())) {
-            throw new CrossBoardOperationException("Label and Task must belong to the same board");
+            throw new CrossBoardOperationException("Task and label must belong to the same board");
         }
 
         if (!task.getLabels().add(label)) {
-            throw new DuplicateException("Label with id '%d' already added to task with id '%d'"
-                    .formatted(labelId, taskId));
+            throw new DuplicateException("Label with id %d is already added to task %d".formatted(labelId, taskId));
         }
 
         Board board = label.getBoard();
 
         publishActivity(board.getId(), board.getName(),
-                TASK_LABEL_ADDED, "Added label '%s' to task '%s'".formatted(label.getName(), task.getTitle()));
+                TASK_LABEL_ADDED, "Added label %s to task %s".formatted(label.getName(), task.getTitle()));
 
         return taskPreviewResponseMapper.toDto(task);
     }
@@ -272,12 +271,12 @@ public class TaskServiceImpl implements TaskService {
             """)
     public TaskPreviewResponse deleteLabelFromTask(Long taskId, Long labelId) {
         Task task = taskRepository.findByIdWithLabels(taskId)
-                .orElseThrow(() -> new ObjectNotFoundException("Task with id '%d' not found".formatted(taskId)));
+                .orElseThrow(() -> new ObjectNotFoundException("Task with id %d not found".formatted(taskId)));
 
         Label label = labelService.getLabelById(labelId);
 
         if (!task.getSection().getBoard().getId().equals(label.getBoard().getId())) {
-            throw new CrossBoardOperationException("Label and Task must belong to the same board");
+            throw new CrossBoardOperationException("Task and label must belong to the same board");
         }
 
         task.getLabels().remove(label);
@@ -285,7 +284,7 @@ public class TaskServiceImpl implements TaskService {
         Board board = label.getBoard();
 
         publishActivity(board.getId(), board.getName(),
-                TASK_LABEL_DELETED, "Deleted label '%s' from task '%s'".formatted(label.getName(), task.getTitle()));
+                TASK_LABEL_DELETED, "Removed label %s from task %s".formatted(label.getName(), task.getTitle()));
 
         return taskPreviewResponseMapper.toDto(task);
     }
