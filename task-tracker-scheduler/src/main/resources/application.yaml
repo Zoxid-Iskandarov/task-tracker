@@ -32,13 +32,6 @@ spring:
       acks: all
       compression-type: lz4
       properties:
-        spring:
-          json:
-            type.mapping: MessageDto:com.walking.scheduler.domain.dto.MessageDto
-kafka:
-  topic-name: EMAIL_SENDING_TASKS
-scheduler:
-  cron: '0 0 0 * * *'
         enable.idempotence: true
         max.in.flight.requests.per.connection: 5
         linger.ms: 10
@@ -54,3 +47,6 @@ app:
     topics:
       email-sending: email_sending_tasks
       user_activity: user_activities
+  scheduler:
+    cron: '0 0 23 * * *'
+    batch-size: 100
