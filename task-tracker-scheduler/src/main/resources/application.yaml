@@ -5,7 +5,7 @@ spring:
     name: task-tracker-scheduler
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://localhost:5432/task_tracker_db
+    url: jdbc:postgresql://localhost:5433/task_tracker_scheduler_db
     username: postgres
     password: postgres
   jpa:
@@ -17,14 +17,36 @@ spring:
         format_sql: true
     open-in-view: false
   kafka:
-    producer:
-      bootstrap-servers: localhost:9092
-      acks: all
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: scheduler-group
+      key-deserializer: org.apache.kafka.common.serialization.LongDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
       properties:
-        spring:
-          json:
-            type.mapping: MessageDto:com.walking.scheduler.domain.dto.MessageDto
-kafka:
-  topic-name: EMAIL_SENDING_TASKS
-scheduler:
-  cron: '0 0 0 * * *'
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
+        spring.json.trusted.packages: com.walking.backend.domain.dto.kafka.UserActivityEvent
+        spring.json.type.mapping: UserActivityEvent:com.walking.scheduler.domain.dto.UserActivityEvent
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.LongSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JacksonJsonSerializer
+      acks: all
+      compression-type: lz4
+      properties:
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 5
+        linger.ms: 10
+        batch.size: 32768
+        delivery.timeout.ms: 120000
+        request.timeout.ms: 30000
+        retry.backoff.ms: 500
+        spring.json:
+          add.type.headers: true
+          type.mapping: MessageDto:com.walking.scheduler.domain.dto.MessageDto
+app:
+  kafka:
+    topics:
+      email-sending: email_sending_tasks
+      user_activity: user_activities
+  scheduler:
+    cron: '0 0 23 * * *'
+    batch-size: 100
