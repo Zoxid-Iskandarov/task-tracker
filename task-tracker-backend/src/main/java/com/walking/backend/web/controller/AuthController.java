@@ -4,6 +4,7 @@ import com.walking.backend.domain.dto.auth.AuthResponse;
 import com.walking.backend.domain.dto.auth.SignInRequest;
 import com.walking.backend.domain.dto.auth.SignUpRequest;
 import com.walking.backend.service.AuthService;
+import com.walking.backend.web.openapi.AuthApi;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -14,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
-public class AuthController {
+public class AuthController implements AuthApi {
     private final AuthService authService;
 
     @PostMapping("/sign-up")

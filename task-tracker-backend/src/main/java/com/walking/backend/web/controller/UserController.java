@@ -5,6 +5,7 @@ import com.walking.backend.domain.dto.user.UserResponse;
 import com.walking.backend.security.principal.CustomUserDetails;
 import com.walking.backend.service.UserActivityService;
 import com.walking.backend.service.UserService;
+import com.walking.backend.web.openapi.UserApi;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -16,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/user")
 @RequiredArgsConstructor
-public class UserController {
+public class UserController implements UserApi {
     private final UserService userService;
     private final UserActivityService userActivityService;
 

@@ -6,60 +6,71 @@ import com.walking.backend.domain.dto.auth.SignUpRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.RequestBody;
 
-@Tag(name = "Authentication", description = "Managing registration, login, and token renewal")
+@Tag(name = "Authentication", description = "Endpoints for user registration, login, token refresh, and logout")
 public interface AuthApi {
 
-    @Operation(summary = "New user registration", description = "Creates an account and returns a pair of JWT tokens.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "User successfully created"),
-            @ApiResponse(responseCode = "400", description = "Input validation error"),
-            @ApiResponse(responseCode = "409", description = "A user with this email or username already exists")
+    @Operation(
+            summary = "Register a new user",
+            description = "Creates a new user account, generates access/refresh tokens, and sets the refresh token in a secure cookie."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "User successfully registered",
+                    content = @Content(schema = @Schema(implementation = AuthResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid request data or user already exists"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    ResponseEntity<AuthResponse> signUp(@RequestBody @Validated SignUpRequest signUpRequest);
+    ResponseEntity<AuthResponse> signUp(
+            @RequestBody @Validated SignUpRequest signUpRequest,
+            @Parameter(hidden = true) HttpServletResponse response
+    );
 
-    @Operation(summary = "User authorization", description = "Authorizes the user and returns a pair of JWT tokens.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Successful login"),
-            @ApiResponse(responseCode = "401", description = "Invalid username or password")
+    @Operation(
+            summary = "Authenticate user",
+            description = "Verifies credentials, grants access/refresh tokens, and sets the refresh token in a secure cookie."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Successfully authenticated",
+                    content = @Content(schema = @Schema(implementation = AuthResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Invalid username or password"),
+            @ApiResponse(responseCode = "400", description = "Invalid request data")
     })
-    ResponseEntity<AuthResponse> signIn(@RequestBody @Validated SignInRequest signInRequest);
+    AuthResponse signIn(
+            @RequestBody @Validated SignInRequest signInRequest,
+            @Parameter(hidden = true) HttpServletResponse response
+    );
 
     @Operation(
             summary = "Refresh access token",
-            description = "Extracts the refresh token from the 'X-Refresh-Token' header manually from the request object.",
-            parameters = {
-                    @Parameter(
-                            name = "X-Refresh-Token",
-                            in = ParameterIn.HEADER,
-                            description = "The refresh token string",
-                            required = true,
-                            example = "eyJhbGciOiJIUzI1..."
-                    )
-            }
+            description = "Uses the refresh token provided via cookies to issue a new pair of access and refresh tokens."
     )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Tokens refreshed successfully"),
-            @ApiResponse(responseCode = "401", description = "Invalid refresh token")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Tokens successfully renewed",
+                    content = @Content(schema = @Schema(implementation = AuthResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Refresh token is missing, expired, or invalid")
     })
-    ResponseEntity<AuthResponse> refreshTokens(HttpServletRequest request);
+    AuthResponse refreshTokens(
+            @Parameter(in = ParameterIn.COOKIE, name = "refresh_token", description = "Secure HttpOnly refresh token")
+            @CookieValue(name = "refresh_token", required = false) String refreshToken,
+            @Parameter(hidden = true) HttpServletResponse response
+    );
 
     @Operation(
-            summary = "Log out user",
-            description = "Invalidates the session by deleting all user tokens. Requires a valid Access Token."
+            summary = "Sign out user",
+            description = "Logs out the user and clears authentication cookies. (Note: Intercepted and handled by Spring Security Logout Filter)"
     )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Successfully logged out"),
-            @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or missing token")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Successfully logged out")
     })
-    @SecurityRequirement(name = "Bearer Authentication")
     ResponseEntity<Void> signOut();
 }

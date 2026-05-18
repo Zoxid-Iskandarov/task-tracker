@@ -4,6 +4,7 @@ import com.walking.backend.domain.dto.label.CreateLabelRequest;
 import com.walking.backend.domain.dto.label.LabelResponse;
 import com.walking.backend.domain.dto.label.UpdateLabelRequest;
 import com.walking.backend.service.LabelService;
+import com.walking.backend.web.openapi.LabelApi;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/labels")
 @RequiredArgsConstructor
-public class LabelController {
+public class LabelController implements LabelApi {
     private final LabelService labelService;
 
     @PostMapping

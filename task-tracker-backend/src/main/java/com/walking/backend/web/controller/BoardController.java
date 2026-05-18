@@ -14,6 +14,7 @@ import com.walking.backend.domain.dto.user.UserResponse;
 import com.walking.backend.domain.dto.user.UserSearchFilter;
 import com.walking.backend.security.principal.CustomUserDetails;
 import com.walking.backend.service.*;
+import com.walking.backend.web.openapi.BoardApi;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -30,7 +31,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/boards")
 @RequiredArgsConstructor
-public class BoardController {
+public class BoardController implements BoardApi {
     private final BoardService boardService;
     private final BoardMemberService boardMemberService;
     private final SectionService sectionService;

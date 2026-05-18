@@ -2,6 +2,7 @@ package com.walking.backend.web.controller;
 
 import com.walking.backend.domain.dto.task.*;
 import com.walking.backend.service.TaskService;
+import com.walking.backend.web.openapi.TaskApi;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -11,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/tasks")
 @RequiredArgsConstructor
-public class TaskController {
+public class TaskController implements TaskApi {
     private final TaskService taskService;
 
     @GetMapping("/{taskId}")

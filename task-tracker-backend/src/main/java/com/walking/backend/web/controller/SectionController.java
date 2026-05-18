@@ -6,6 +6,7 @@ import com.walking.backend.domain.dto.section.UpdateSectionRequest;
 import com.walking.backend.domain.dto.task.TaskPreviewResponse;
 import com.walking.backend.service.SectionService;
 import com.walking.backend.service.TaskService;
+import com.walking.backend.web.openapi.SectionApi;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -18,7 +19,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/sections")
 @RequiredArgsConstructor
-public class SectionController {
+public class SectionController implements SectionApi {
     private final SectionService sectionService;
     private final TaskService taskService;
 
