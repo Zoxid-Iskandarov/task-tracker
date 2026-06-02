@@ -13,3 +13,5 @@ databaseChangeLog:
       file: db/changelog/V1_0_6__create_label.sql
   - include:
       file: db/changelog/V1_0_7__create_user_activity.sql
+  - include:
+      file: db/changelog/V1_0_8__create_user_profile.sql
