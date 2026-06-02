@@ -33,6 +33,11 @@ public class UserServiceImpl implements UserService {
     public Page<UserResponse> searchUsersToInvite(Long boardId, String query, Pageable pageable) {
         return userRepository.searchUsersByQueryAndExcludeBoardMembers(query, boardId, pageable)
                 .map(userResponseMapper::toDto);
+
+    @Override
+    public UserProfileResponse getCurrentUserProfileById(Long userId) {
+        return userRepository.findUserProfileByUserId(userId)
+                .orElseThrow(() -> new ObjectNotFoundException("User with id %d not found"));
     }
 
     @Override
@@ -71,5 +76,11 @@ public class UserServiceImpl implements UserService {
                     return userRepository.save(user);
                 }).map(userResponseMapper::toDto)
                 .orElseThrow();
+    }
+
+    @Override
+    public UserPublicProfileResponse getUserProfileById(Long userId) {
+        return userRepository.findUserPublicProfileByUserId(userId)
+                .orElseThrow(() -> new ObjectNotFoundException("User with id %d not found".formatted(userId)));
     }
 }
