@@ -1,7 +1,10 @@
 package com.walking.backend.service.impl;
 
 import com.walking.backend.domain.dto.auth.SignUpRequest;
+import com.walking.backend.domain.dto.user.UserProfileResponse;
+import com.walking.backend.domain.dto.user.UserPublicProfileResponse;
 import com.walking.backend.domain.dto.user.UserResponse;
+import com.walking.backend.domain.dto.user.UserSearchResponse;
 import com.walking.backend.domain.exception.DuplicateException;
 import com.walking.backend.domain.exception.ObjectNotFoundException;
 import com.walking.backend.domain.model.User;
@@ -30,9 +33,9 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @PreAuthorize("@resourceAccessService.canViewBoard(#boardId, principal.id)")
-    public Page<UserResponse> searchUsersToInvite(Long boardId, String query, Pageable pageable) {
-        return userRepository.searchUsersByQueryAndExcludeBoardMembers(query, boardId, pageable)
-                .map(userResponseMapper::toDto);
+    public Page<UserSearchResponse> searchUsersToInvite(Long boardId, String query, Pageable pageable) {
+        return userRepository.searchUsersByQueryAndExcludeBoardMembers(query, boardId, pageable);
+    }
 
     @Override
     public UserProfileResponse getCurrentUserProfileById(Long userId) {
