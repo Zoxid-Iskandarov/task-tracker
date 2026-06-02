@@ -1,6 +1,5 @@
 package com.walking.backend.web.openapi;
 
-import com.walking.backend.domain.dto.activity.BoardActivityResponse;
 import com.walking.backend.domain.dto.board.BoardRequest;
 import com.walking.backend.domain.dto.board.BoardResponse;
 import com.walking.backend.domain.dto.boardMember.BoardMemberFilter;
@@ -10,8 +9,8 @@ import com.walking.backend.domain.dto.label.LabelResponse;
 import com.walking.backend.domain.dto.section.SectionResponse;
 import com.walking.backend.domain.dto.task.TaskFilter;
 import com.walking.backend.domain.dto.task.TaskPreviewResponse;
-import com.walking.backend.domain.dto.user.UserResponse;
 import com.walking.backend.domain.dto.user.UserSearchFilter;
+import com.walking.backend.domain.dto.user.UserSearchResponse;
 import com.walking.backend.security.principal.CustomUserDetails;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -108,7 +107,7 @@ public interface BoardApi {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Search results retrieved successfully")
     })
-    Page<UserResponse> searchUsers(
+    Page<UserSearchResponse> searchUsers(
             @Parameter(description = "ID of the current board") Long boardId,
             @ParameterObject @Validated UserSearchFilter userSearchFilter,
             @ParameterObject Pageable pageable
@@ -165,14 +164,5 @@ public interface BoardApi {
     ResponseEntity<?> leaveBoard(
             @Parameter(description = "ID of the board to leave") Long boardId,
             @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails
-    );
-
-    @Operation(summary = "Get historical board activity logs", description = "Retrieves audit trails and history logs showing what actions were performed on this specific board today and recently.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Activity log retrieved successfully")
-    })
-    Page<BoardActivityResponse> getBoardActivities(
-            @Parameter(description = "ID of the board") Long boardId,
-            @ParameterObject Pageable pageable
     );
 }
