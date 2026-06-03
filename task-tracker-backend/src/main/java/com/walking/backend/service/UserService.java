@@ -25,7 +25,7 @@ public interface UserService {
 
     UserProfileResponse updateUserProfile(Long userId, UpdateUserProfileRequest updateUserProfileRequest);
 
-    void uploadAvatar(Long userId, MultipartFile file);
+    UserProfileResponse uploadAvatar(Long userId, MultipartFile file);
 
     void deleteAvatar(Long userId);
 }

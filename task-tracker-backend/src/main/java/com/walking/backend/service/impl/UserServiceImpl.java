@@ -110,7 +110,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public void uploadAvatar(Long userId, MultipartFile file) {
+    public UserProfileResponse uploadAvatar(Long userId, MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new InvalidFileException("File is empty");
         }
@@ -130,6 +130,8 @@ public class UserServiceImpl implements UserService {
 
         userProfile.setAvatarUrl(fileName);
         userProfileRepository.save(userProfile);
+
+        return userProfileResponseMapper.toDto(userProfile);
     }
 
     @Override

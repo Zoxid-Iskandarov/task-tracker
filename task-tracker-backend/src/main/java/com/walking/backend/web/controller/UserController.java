@@ -33,12 +33,10 @@ public class UserController implements UserApi {
     }
 
     @PostMapping(value = "/me/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Void> uploadAvatar(
+    public UserProfileResponse uploadAvatar(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam("file") MultipartFile file) {
-        userService.uploadAvatar(userDetails.id(), file);
-
-        return ResponseEntity.noContent().build();
+        return userService.uploadAvatar(userDetails.id(), file);
     }
 
     @DeleteMapping("/me/avatar")
