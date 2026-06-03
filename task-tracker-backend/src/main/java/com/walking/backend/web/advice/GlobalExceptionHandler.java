@@ -70,6 +70,12 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(e.getMessage(), HttpStatus.FORBIDDEN);
     }
 
+    @ExceptionHandler(InvalidFileException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handUploadFileException(InvalidFileException e) {
+        return buildErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+
     private ErrorResponse buildErrorResponse(String message, HttpStatus status) {
         return new ErrorResponse(status.value(), status.getReasonPhrase(), message, LocalDateTime.now());
     }

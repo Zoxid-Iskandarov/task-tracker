@@ -1,6 +1,5 @@
 package com.walking.backend.web.controller;
 
-import com.walking.backend.domain.dto.activity.BoardActivityResponse;
 import com.walking.backend.domain.dto.board.BoardRequest;
 import com.walking.backend.domain.dto.board.BoardResponse;
 import com.walking.backend.domain.dto.boardMember.BoardMemberFilter;
@@ -10,8 +9,8 @@ import com.walking.backend.domain.dto.label.LabelResponse;
 import com.walking.backend.domain.dto.section.SectionResponse;
 import com.walking.backend.domain.dto.task.TaskFilter;
 import com.walking.backend.domain.dto.task.TaskPreviewResponse;
-import com.walking.backend.domain.dto.user.UserResponse;
 import com.walking.backend.domain.dto.user.UserSearchFilter;
+import com.walking.backend.domain.dto.user.UserSearchResponse;
 import com.walking.backend.security.principal.CustomUserDetails;
 import com.walking.backend.service.*;
 import com.walking.backend.web.openapi.BoardApi;
@@ -38,7 +37,6 @@ public class BoardController implements BoardApi {
     private final TaskService taskService;
     private final LabelService labelService;
     private final UserService userService;
-    private final UserActivityService userActivityService;
 
     @GetMapping
     public Page<BoardResponse> getBoards(
@@ -86,7 +84,7 @@ public class BoardController implements BoardApi {
     }
 
     @GetMapping("/{boardId}/users/search")
-    public Page<UserResponse> searchUsers(
+    public Page<UserSearchResponse> searchUsers(
             @PathVariable Long boardId,
             @Validated UserSearchFilter userSearchFilter,
             @PageableDefault(50) Pageable pageable) {
@@ -135,11 +133,5 @@ public class BoardController implements BoardApi {
 
         return ResponseEntity.noContent()
                 .build();
-    }
-
-    @GetMapping("/{boardId}/activities")
-    public Page<BoardActivityResponse> getBoardActivities(
-            @PathVariable Long boardId, @PageableDefault(50) Pageable pageable) {
-        return userActivityService.getBoardActivities(boardId, pageable);
     }
 }

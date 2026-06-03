@@ -7,6 +7,8 @@ import java.time.LocalDateTime;
 public record BoardActivityResponse(
         Long userId,
         String username,
+        String displayName,
+        String avatarUrl,
         ActivityType activityType,
         String description,
         LocalDateTime created) {

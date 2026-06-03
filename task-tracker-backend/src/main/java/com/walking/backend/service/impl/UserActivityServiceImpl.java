@@ -4,7 +4,6 @@ import com.walking.backend.domain.dto.activity.BoardActivityResponse;
 import com.walking.backend.domain.dto.activity.UserActivityResponse;
 import com.walking.backend.repository.UserActivityRepository;
 import com.walking.backend.service.UserActivityService;
-import com.walking.backend.service.mapper.activity.BoardActivityResponseMapper;
 import com.walking.backend.service.mapper.activity.UserActivityResponseMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -18,19 +17,17 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class UserActivityServiceImpl implements UserActivityService {
     private final UserActivityRepository userActivityRepository;
-    private final BoardActivityResponseMapper boardActivityResponseMapper;
     private final UserActivityResponseMapper userActivityResponseMapper;
 
     @Override
     @PreAuthorize("@resourceAccessService.canViewBoard(#boardId, principal.id)")
     public Page<BoardActivityResponse> getBoardActivities(Long boardId, Pageable pageable) {
-        return userActivityRepository.findAllByBoardIdOrderByCreatedDesc(boardId, pageable)
-                .map(boardActivityResponseMapper::toDto);
+        return userActivityRepository.findAllByBoardId(boardId, pageable);
     }
 
     @Override
     public Page<UserActivityResponse> getUserActivities(Long userId, Pageable pageable) {
-        return userActivityRepository.findAllByUserIdOrderByCreatedDesc(userId, pageable)
+        return userActivityRepository.findAllByUserId(userId, pageable)
                 .map(userActivityResponseMapper::toDto);
     }
 }

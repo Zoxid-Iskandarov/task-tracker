@@ -1,13 +1,18 @@
 package com.walking.backend.service.impl;
 
 import com.walking.backend.domain.dto.auth.SignUpRequest;
-import com.walking.backend.domain.dto.user.UserResponse;
+import com.walking.backend.domain.dto.user.*;
 import com.walking.backend.domain.exception.DuplicateException;
+import com.walking.backend.domain.exception.InvalidFileException;
 import com.walking.backend.domain.exception.ObjectNotFoundException;
 import com.walking.backend.domain.model.User;
+import com.walking.backend.domain.model.UserProfile;
+import com.walking.backend.repository.UserProfileRepository;
 import com.walking.backend.repository.UserRepository;
+import com.walking.backend.service.FileStorageService;
 import com.walking.backend.service.UserService;
 import com.walking.backend.service.mapper.user.SignUpRequestMapper;
+import com.walking.backend.service.mapper.user.UserProfileResponseMapper;
 import com.walking.backend.service.mapper.user.UserResponseMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -16,23 +21,30 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.Optional;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
+    private final UserProfileRepository userProfileRepository;
     private final PasswordEncoder passwordEncoder;
+    private final FileStorageService fileStorageService;
     private final UserResponseMapper userResponseMapper;
     private final SignUpRequestMapper signUpRequestMapper;
+    private final UserProfileResponseMapper userProfileResponseMapper;
 
     @Override
     @PreAuthorize("@resourceAccessService.canViewBoard(#boardId, principal.id)")
-    public Page<UserResponse> searchUsersToInvite(Long boardId, String query, Pageable pageable) {
-        return userRepository.searchUsersByQueryAndExcludeBoardMembers(query, boardId, pageable)
-                .map(userResponseMapper::toDto);
+    public Page<UserSearchResponse> searchUsersToInvite(Long boardId, String query, Pageable pageable) {
+        return userRepository.searchUsersByQueryAndExcludeBoardMembers(query, boardId, pageable);
+    }
+
+    @Override
+    public UserProfileResponse getCurrentUserProfileById(Long userId) {
+        return userRepository.findUserProfileByUserId(userId)
+                .orElseThrow(() -> new ObjectNotFoundException("User with id %d not found"));
     }
 
     @Override
@@ -64,12 +76,74 @@ public class UserServiceImpl implements UserService {
             throw new DuplicateException("Email %s is already taken".formatted(signUpRequest.email()));
         }
 
-        return Optional.of(signUpRequest)
-                .map(signUpRequestMapper::toEntity)
-                .map(user -> {
-                    user.setPassword(passwordEncoder.encode(user.getPassword()));
-                    return userRepository.save(user);
-                }).map(userResponseMapper::toDto)
-                .orElseThrow();
+        User user = signUpRequestMapper.toEntity(signUpRequest);
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
+
+        User savedUser = userRepository.save(user);
+
+        UserProfile userProfile = new UserProfile();
+        userProfile.setUser(savedUser);
+
+        userProfileRepository.save(userProfile);
+
+        return userResponseMapper.toDto(savedUser);
+    }
+
+    @Override
+    public UserPublicProfileResponse getUserProfileById(Long userId) {
+        return userRepository.findUserPublicProfileByUserId(userId)
+                .orElseThrow(() -> new ObjectNotFoundException("User with id %d not found".formatted(userId)));
+    }
+
+    @Override
+    @Transactional
+    public UserProfileResponse updateUserProfile(Long userId, UpdateUserProfileRequest updateUserProfileRequest) {
+        return userProfileRepository.findById(userId)
+                .map(profile -> {
+                    profile.setDisplayName(updateUserProfileRequest.displayName());
+                    profile.setBio(updateUserProfileRequest.bio());
+                    return userProfileRepository.save(profile);
+                })
+                .map(userProfileResponseMapper::toDto)
+                .orElseThrow(() -> new ObjectNotFoundException("Profile with id %d not found"));
+    }
+
+    @Override
+    @Transactional
+    public UserProfileResponse uploadAvatar(Long userId, MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new InvalidFileException("File is empty");
+        }
+
+        if (file.getContentType() == null || !file.getContentType().startsWith("image/")) {
+            throw new InvalidFileException("File is not an image");
+        }
+
+        UserProfile userProfile = userProfileRepository.findById(userId)
+                .orElseThrow(() -> new ObjectNotFoundException("Profile with id %d not found".formatted(userId)));
+
+        if (userProfile.getAvatarUrl() != null) {
+            fileStorageService.delete(userProfile.getAvatarUrl());
+        }
+
+        String fileName = fileStorageService.upload(userId, file);
+
+        userProfile.setAvatarUrl(fileName);
+        userProfileRepository.save(userProfile);
+
+        return userProfileResponseMapper.toDto(userProfile);
+    }
+
+    @Override
+    @Transactional
+    public void deleteAvatar(Long userId) {
+        UserProfile userProfile = userProfileRepository.findById(userId)
+                .orElseThrow(() -> new ObjectNotFoundException("Profile with id %d not found".formatted(userId)));
+
+        if (userProfile.getAvatarUrl() != null) {
+            fileStorageService.delete(userProfile.getAvatarUrl());
+            userProfile.setAvatarUrl(null);
+            userProfileRepository.save(userProfile);
+        }
     }
 }
