@@ -1,13 +1,12 @@
 package com.walking.backend.service.impl;
 
 import com.walking.backend.domain.dto.auth.SignUpRequest;
-import com.walking.backend.domain.dto.user.UserProfileResponse;
-import com.walking.backend.domain.dto.user.UserPublicProfileResponse;
-import com.walking.backend.domain.dto.user.UserResponse;
-import com.walking.backend.domain.dto.user.UserSearchResponse;
+import com.walking.backend.domain.dto.user.*;
 import com.walking.backend.domain.exception.DuplicateException;
 import com.walking.backend.domain.exception.ObjectNotFoundException;
 import com.walking.backend.domain.model.User;
+import com.walking.backend.domain.model.UserProfile;
+import com.walking.backend.repository.UserProfileRepository;
 import com.walking.backend.repository.UserRepository;
 import com.walking.backend.service.UserService;
 import com.walking.backend.service.mapper.user.SignUpRequestMapper;
@@ -27,6 +26,7 @@ import java.util.Optional;
 @Transactional(readOnly = true)
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
+    private final UserProfileRepository userProfileRepository;
     private final PasswordEncoder passwordEncoder;
     private final UserResponseMapper userResponseMapper;
     private final SignUpRequestMapper signUpRequestMapper;
@@ -72,13 +72,17 @@ public class UserServiceImpl implements UserService {
             throw new DuplicateException("Email %s is already taken".formatted(signUpRequest.email()));
         }
 
-        return Optional.of(signUpRequest)
-                .map(signUpRequestMapper::toEntity)
-                .map(user -> {
-                    user.setPassword(passwordEncoder.encode(user.getPassword()));
-                    return userRepository.save(user);
-                }).map(userResponseMapper::toDto)
-                .orElseThrow();
+        User user = signUpRequestMapper.toEntity(signUpRequest);
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
+
+        User savedUser = userRepository.save(user);
+
+        UserProfile userProfile = new UserProfile();
+        userProfile.setUser(savedUser);
+
+        userProfileRepository.save(userProfile);
+
+        return userResponseMapper.toDto(savedUser);
     }
 
     @Override
