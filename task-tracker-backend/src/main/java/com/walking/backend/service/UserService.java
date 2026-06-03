@@ -24,4 +24,6 @@ public interface UserService {
     UserResponse createUser(SignUpRequest signUpRequest);
 
     UserPublicProfileResponse getUserProfileById(Long userId);
+
+    UserProfileResponse updateUserProfile(Long userId, UpdateUserProfileRequest updateUserProfileRequest);
 }

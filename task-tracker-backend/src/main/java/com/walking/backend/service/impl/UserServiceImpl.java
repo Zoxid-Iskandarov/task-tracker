@@ -10,6 +10,7 @@ import com.walking.backend.repository.UserProfileRepository;
 import com.walking.backend.repository.UserRepository;
 import com.walking.backend.service.UserService;
 import com.walking.backend.service.mapper.user.SignUpRequestMapper;
+import com.walking.backend.service.mapper.user.UserProfileResponseMapper;
 import com.walking.backend.service.mapper.user.UserResponseMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -30,6 +31,7 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder passwordEncoder;
     private final UserResponseMapper userResponseMapper;
     private final SignUpRequestMapper signUpRequestMapper;
+    private final UserProfileResponseMapper userProfileResponseMapper;
 
     @Override
     @PreAuthorize("@resourceAccessService.canViewBoard(#boardId, principal.id)")
@@ -89,5 +91,18 @@ public class UserServiceImpl implements UserService {
     public UserPublicProfileResponse getUserProfileById(Long userId) {
         return userRepository.findUserPublicProfileByUserId(userId)
                 .orElseThrow(() -> new ObjectNotFoundException("User with id %d not found".formatted(userId)));
+    }
+
+    @Override
+    @Transactional
+    public UserProfileResponse updateUserProfile(Long userId, UpdateUserProfileRequest updateUserProfileRequest) {
+        return userProfileRepository.findById(userId)
+                .map(profile -> {
+                    profile.setDisplayName(updateUserProfileRequest.displayName());
+                    profile.setBio(updateUserProfileRequest.bio());
+                    return userProfileRepository.save(profile);
+                })
+                .map(userProfileResponseMapper::toDto)
+                .orElseThrow(() -> new ObjectNotFoundException("Profile with id %d not found"));
     }
 }
