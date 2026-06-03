@@ -1,13 +1,11 @@
 package com.walking.backend.service;
 
 import com.walking.backend.domain.dto.auth.SignUpRequest;
-import com.walking.backend.domain.dto.user.UserProfileResponse;
-import com.walking.backend.domain.dto.user.UserPublicProfileResponse;
-import com.walking.backend.domain.dto.user.UserResponse;
-import com.walking.backend.domain.dto.user.UserSearchResponse;
+import com.walking.backend.domain.dto.user.*;
 import com.walking.backend.domain.model.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.web.multipart.MultipartFile;
 
 public interface UserService {
 
@@ -26,4 +24,8 @@ public interface UserService {
     UserPublicProfileResponse getUserProfileById(Long userId);
 
     UserProfileResponse updateUserProfile(Long userId, UpdateUserProfileRequest updateUserProfileRequest);
+
+    void uploadAvatar(Long userId, MultipartFile file);
+
+    void deleteAvatar(Long userId);
 }

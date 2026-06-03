@@ -7,13 +7,12 @@ import com.walking.backend.security.principal.CustomUserDetails;
 import com.walking.backend.service.UserService;
 import com.walking.backend.web.openapi.UserApi;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/users")
@@ -32,6 +31,23 @@ public class UserController implements UserApi {
             @RequestBody @Validated UpdateUserProfileRequest updateUserProfileRequest) {
         return userService.updateUserProfile(userDetails.id(), updateUserProfileRequest);
     }
+
+    @PostMapping(value = "/me/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Void> uploadAvatar(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam("file") MultipartFile file) {
+        userService.uploadAvatar(userDetails.id(), file);
+
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/me/avatar")
+    public ResponseEntity<Void> deleteAvatar(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        userService.deleteAvatar(userDetails.id());
+
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/{userId}")
     public UserPublicProfileResponse getUserProfile(@PathVariable Long userId) {
         return userService.getUserProfileById(userId);
