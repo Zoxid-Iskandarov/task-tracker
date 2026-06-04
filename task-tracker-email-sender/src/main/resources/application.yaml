@@ -23,10 +23,8 @@ spring:
     password: ${MAIL_PASSWORD}
     properties:
       mail.smtp:
-        auth: true
-        starttls.enable: true
-kafka:
-  topic-name: EMAIL_SENDING_TASKS
+        auth: false
+        starttls.enable: false
 app:
   kafka:
     topic-name: email_sending_tasks
