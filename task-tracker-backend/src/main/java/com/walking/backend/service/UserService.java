@@ -8,6 +8,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public interface UserService {
@@ -25,6 +26,8 @@ public interface UserService {
     Set<User> getBoardMembersForTask(Long sectionId, Set<Long> assigneeIds);
 
     List<UserShortResponse> getUserShortsByIds(Set<Long> userIds);
+
+    Map<Long, List<UserShortResponse>> getAssigneeByTaskIds(Set<Long> taskIds);
 
     UserResponse createUser(SignUpRequest signUpRequest);
 

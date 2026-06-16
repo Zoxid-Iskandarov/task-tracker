@@ -28,6 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -58,8 +59,12 @@ public class TaskServiceImpl implements TaskService {
     public Page<TaskPreviewResponse> getTasks(Long sectionId, Pageable pageable) {
         Specification<Task> spec = Specification.where(TaskSpecification.hasSectionId(sectionId));
 
-        return taskRepository.findAll(spec, pageable)
-                .map(taskPreviewResponseMapper::toDto);
+        Page<Task> tasks = taskRepository.findAll(spec, pageable);
+
+        Map<Long, List<UserShortResponse>> assigneesByTaskId = loadAssigneesBatch(tasks.getContent());
+
+        return tasks.map(task ->
+                taskPreviewResponseMapper.toDto(task, assigneesByTaskId.getOrDefault(task.getId(), List.of())));
     }
 
     @Override
@@ -70,10 +75,16 @@ public class TaskServiceImpl implements TaskService {
                 .and(TaskSpecification.hasTitle(taskFilter.title()))
                 .and(TaskSpecification.hasCompleted(taskFilter.completed()))
                 .and(TaskSpecification.hasLabels(taskFilter.labelIds()))
+                .and(TaskSpecification.hasAssignees(taskFilter.assigneeIds()))
+                .and(TaskSpecification.hasDueDate(taskFilter.dueDateFrom(), taskFilter.dueDateTo()))
                 .and(TaskSpecification.hasCreatedBetween(taskFilter.createdFrom(), taskFilter.createdTo()));
 
-        return taskRepository.findAll(spec, pageable)
-                .map(taskPreviewResponseMapper::toDto);
+        Page<Task> tasks = taskRepository.findAll(spec, pageable);
+
+        Map<Long, List<UserShortResponse>> assigneesByTaskId = loadAssigneesBatch(tasks.getContent());
+
+        return tasks.map(task ->
+                taskPreviewResponseMapper.toDto(task, assigneesByTaskId.getOrDefault(task.getId(), List.of())));
     }
 
     @Override
@@ -344,6 +355,16 @@ public class TaskServiceImpl implements TaskService {
                 .collect(Collectors.toSet());
 
         return userService.getUserShortsByIds(userIds);
+    }
+
+    private Map<Long, List<UserShortResponse>> loadAssigneesBatch(List<Task> tasks) {
+        Set<Long> taskIds = tasks.stream()
+                .map(Task::getId)
+                .collect(Collectors.toSet());
+
+        if (taskIds.isEmpty()) return Map.of();
+
+        return userService.getAssigneeByTaskIds(taskIds);
     }
 
     private void publishActivity(Long boardId, String boardName, ActivityType type, String description) {
