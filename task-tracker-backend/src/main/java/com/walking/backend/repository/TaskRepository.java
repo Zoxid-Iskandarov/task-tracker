@@ -57,4 +57,15 @@ public interface TaskRepository extends JpaRepository<Task, Long>, JpaSpecificat
             """, nativeQuery = true)
     boolean existsAssigneeByTaskIdAndUserId(Long taskId, Long userId);
 
+    @Modifying
+    @Query(value = """
+            DELETE FROM task_assignee
+                WHERE user_id = :userId
+                    AND task_id IN (
+                        SELECT t.id
+                        FROM task t
+                                JOIN section s ON t.section_id = s.id
+                            WHERE s.board_id = :boardId)
+            """, nativeQuery = true)
+    void removeAssigneeFromBoardTasks(Long boardId, Long userId);
 }
