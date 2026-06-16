@@ -1,5 +1,7 @@
 package com.walking.backend.repository;
 
+import com.walking.backend.domain.dto.user.UserProfileResponse;
+import com.walking.backend.domain.dto.user.UserPublicProfileResponse;
 import com.walking.backend.domain.dto.user.UserShortResponse;
 import com.walking.backend.domain.model.UserProfile;
 import com.walking.backend.domain.projection.TaskAssigneeProjection;
@@ -8,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 @Repository
@@ -38,4 +41,31 @@ public interface UserProfileRepository extends JpaRepository<UserProfile, Long> 
                 where t.id in :taskIds
             """)
     List<TaskAssigneeProjection> findAssigneeProjectionByTaskIds(Set<Long> taskIds);
+
+    @Query("""
+            select new com.walking.backend.domain.dto.user.UserProfileResponse(
+                        u.id,
+                        u.username,
+                        u.email,
+                        p.displayName,
+                        p.avatarUrl,
+                        p.bio)
+            from User u
+                    join UserProfile p on u.id = p.userId
+                where u.id = :userId
+            """)
+    Optional<UserProfileResponse> findUserProfileByUserId(Long userId);
+
+    @Query("""
+            select new com.walking.backend.domain.dto.user.UserPublicProfileResponse(
+                        u.id,
+                        u.username,
+                        p.displayName,
+                        p.avatarUrl,
+                        p.bio)
+            from User u
+                    join UserProfile p on u.id = p.userId
+                where u.id = :userId
+            """)
+    Optional<UserPublicProfileResponse> findUserPublicProfileByUserId(Long userId);
 }

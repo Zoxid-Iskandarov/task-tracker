@@ -49,7 +49,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserProfileResponse getCurrentUserProfileById(Long userId) {
-        return userRepository.findUserProfileByUserId(userId)
+        return userProfileRepository.findUserProfileByUserId(userId)
                 .orElseThrow(() -> new ObjectNotFoundException("User with id %d not found"));
     }
 
@@ -121,7 +121,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserPublicProfileResponse getUserProfileById(Long userId) {
-        return userRepository.findUserPublicProfileByUserId(userId)
+        return userProfileRepository.findUserPublicProfileByUserId(userId)
                 .orElseThrow(() -> new ObjectNotFoundException("User with id %d not found".formatted(userId)));
     }
 
