@@ -1,6 +1,7 @@
 package com.walking.backend.domain.dto.task;
 
 import com.walking.backend.domain.dto.label.LabelResponse;
+import com.walking.backend.domain.dto.user.UserShortResponse;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDateTime;
@@ -20,9 +21,13 @@ public record TaskFullResponse(
         @Schema(description = "Completion status flag", example = "false")
         Boolean isCompleted,
 
+        LocalDateTime dueDate,
+
         Long sectionId,
 
         List<LabelResponse> labels,
+
+        List<UserShortResponse> assignees,
 
         @Schema(description = "Task creation timestamp", example = "2025-12-20T10:00:00")
         LocalDateTime created,

@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.Set;
 @Service
 @RequiredArgsConstructor
@@ -69,6 +70,11 @@ public class UserServiceImpl implements UserService {
     @Override
     public Set<User> getBoardMembersForTask(Long sectionId, Set<Long> assigneeIds) {
         return userRepository.findAllBySectionIdAndAssigneeIds(sectionId, assigneeIds);
+    }
+
+    @Override
+    public List<UserShortResponse> getUserShortsByIds(Set<Long> userIds) {
+        return userProfileRepository.findUserShortsByIds(userIds);
     }
 
     @Override
