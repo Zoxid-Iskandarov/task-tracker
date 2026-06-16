@@ -144,7 +144,7 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     @Transactional
-    @PreAuthorize("@resourceAccessService.canEditTask(#taskId, principal.id)")
+    @PreAuthorize("@resourceAccessService.canToggleTask(#taskId, principal.id)")
     public TaskPreviewResponse toggleCompleted(Long taskId) {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ObjectNotFoundException("Task with id %d not found".formatted(taskId)));
