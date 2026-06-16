@@ -88,6 +88,8 @@ public class TaskServiceImpl implements TaskService {
         task.setIsCompleted(false);
         task.setSection(sectionService.getProxySectionById(createTaskRequest.sectionId()));
 
+        assignUsersToTask(createTaskRequest.sectionId(), createTaskRequest.assigneeIds(), task);
+
         Double position = Optional.ofNullable(taskRepository.findMaxPositionBySectionId(createTaskRequest.sectionId()))
                 .map(p -> p + positionStep)
                 .orElse(positionStep);
@@ -111,6 +113,9 @@ public class TaskServiceImpl implements TaskService {
 
         task.setTitle(newTitle);
         task.setDescription(updateTaskRequest.description());
+        task.setDueDate(updateTaskRequest.dueDate());
+
+        assignUsersToTask(task.getSection().getId(), updateTaskRequest.assigneeIds(), task);
 
         Task updatedTask = taskRepository.save(task);
 
@@ -300,6 +305,29 @@ public class TaskServiceImpl implements TaskService {
         }
 
         taskRepository.saveAll(tasks);
+    }
+
+    private void assignUsersToTask(Long sectionId, Set<Long> assigneeIds, Task task) {
+        if (assigneeIds == null || assigneeIds.isEmpty()) {
+            task.getAssignees().clear();
+            return;
+        }
+
+        Set<User> assignees = userService.getBoardMembersForTask(sectionId, assigneeIds);
+
+        Set<Long> foundIds = assignees.stream()
+                .map(User::getId)
+                .collect(Collectors.toSet());
+
+        List<Long> invalidIds = assigneeIds.stream()
+                .filter(id -> !foundIds.contains(id))
+                .toList();
+
+        if (!invalidIds.isEmpty()) {
+            throw new InvalidTaskAssigneeException("Users with id %s are not members of the board".formatted(invalidIds));
+        }
+
+        task.setAssignees(assignees);
     }
 
     private void publishActivity(Long boardId, String boardName, ActivityType type, String description) {

@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Set;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -63,6 +64,11 @@ public class UserServiceImpl implements UserService {
     public User getUserById(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new ObjectNotFoundException("User with id %d not found".formatted(userId)));
+    }
+
+    @Override
+    public Set<User> getBoardMembersForTask(Long sectionId, Set<Long> assigneeIds) {
+        return userRepository.findAllBySectionIdAndAssigneeIds(sectionId, assigneeIds);
     }
 
     @Override

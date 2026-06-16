@@ -7,6 +7,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Set;
+
 public interface UserService {
 
     Page<UserSearchResponse> searchUsersToInvite(Long boardId, String query, Pageable pageable);
@@ -18,6 +20,8 @@ public interface UserService {
     User getProxyUserById(Long userId);
 
     User getUserById(Long userId);
+
+    Set<User> getBoardMembersForTask(Long sectionId, Set<Long> assigneeIds);
 
     UserResponse createUser(SignUpRequest signUpRequest);
 

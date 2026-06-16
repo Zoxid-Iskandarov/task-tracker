@@ -72,7 +72,13 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(InvalidFileException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ErrorResponse handUploadFileException(InvalidFileException e) {
+    public ErrorResponse handleUploadFileException(InvalidFileException e) {
+        return buildErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(InvalidTaskAssigneeException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleInvalidTaskAssigneeException(InvalidTaskAssigneeException e) {
         return buildErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
     }
 
