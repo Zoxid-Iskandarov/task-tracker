@@ -25,4 +25,18 @@ public class User {
 
     @Column(nullable = false)
     private String password;
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || org.hibernate.Hibernate.getClass(this) != org.hibernate.Hibernate.getClass(o))
+            return false;
+        User user = (User) o;
+        return getId() != null && getId().equals(user.getId());
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
 }

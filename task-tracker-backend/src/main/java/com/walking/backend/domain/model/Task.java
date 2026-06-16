@@ -32,6 +32,9 @@ public class Task {
     @Column(name = "is_completed")
     private Boolean isCompleted;
 
+    @Column(name = "due_date")
+    private LocalDateTime dueDate;
+
     private Double position;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -44,6 +47,13 @@ public class Task {
             joinColumns = @JoinColumn(name = "task_id"),
             inverseJoinColumns = @JoinColumn(name = "label_id"))
     private Set<Label> labels = new HashSet<>();
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "task_assignee",
+            joinColumns = @JoinColumn(name = "task_id"),
+            inverseJoinColumns = @JoinColumn(name = "user_id"))
+    private Set<User> assignees = new HashSet<>();
 
     @CreatedDate
     @Column(updatable = false)
