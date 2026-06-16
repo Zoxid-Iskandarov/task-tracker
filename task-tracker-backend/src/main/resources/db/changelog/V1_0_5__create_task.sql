@@ -4,6 +4,7 @@ CREATE TABLE task
     title        VARCHAR(255)     NOT NULL,
     description  TEXT,
     is_completed BOOLEAN   DEFAULT FALSE,
+    due_date     TIMESTAMP,
     position     DOUBLE PRECISION NOT NULL,
     section_id   BIGINT           NOT NULL REFERENCES section (id) ON DELETE CASCADE,
     created      TIMESTAMP DEFAULT now(),

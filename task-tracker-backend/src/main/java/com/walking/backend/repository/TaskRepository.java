@@ -5,10 +5,7 @@ import com.walking.backend.domain.model.Task;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.data.jpa.repository.EntityGraph;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
-import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.*;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -52,4 +49,23 @@ public interface TaskRepository extends JpaRepository<Task, Long>, JpaSpecificat
                                     where t.id = :taskId and m.user.id = :userId and m.role in :roles
             """)
     boolean existsByTaskIdAndUserIdAndRoles(Long taskId, Long userId, List<BoardRole> roles);
+
+    @Query(value = """
+            SELECT COUNT(*) > 0
+            FROM task_assignee
+                WHERE task_id = :taskId AND user_id = :userId
+            """, nativeQuery = true)
+    boolean existsAssigneeByTaskIdAndUserId(Long taskId, Long userId);
+
+    @Modifying
+    @Query(value = """
+            DELETE FROM task_assignee
+                WHERE user_id = :userId
+                    AND task_id IN (
+                        SELECT t.id
+                        FROM task t
+                                JOIN section s ON t.section_id = s.id
+                            WHERE s.board_id = :boardId)
+            """, nativeQuery = true)
+    void removeAssigneeFromBoardTasks(Long boardId, Long userId);
 }

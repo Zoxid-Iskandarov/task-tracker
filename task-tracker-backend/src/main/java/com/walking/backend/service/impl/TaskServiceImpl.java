@@ -3,6 +3,7 @@ package com.walking.backend.service.impl;
 import com.walking.backend.audit.annotation.TrackActivity;
 import com.walking.backend.domain.dto.activity.UserActivityInternalEvent;
 import com.walking.backend.domain.dto.task.*;
+import com.walking.backend.domain.dto.user.UserShortResponse;
 import com.walking.backend.domain.exception.*;
 import com.walking.backend.domain.model.*;
 import com.walking.backend.repository.TaskRepository;
@@ -11,6 +12,7 @@ import com.walking.backend.security.principal.CustomUserDetails;
 import com.walking.backend.service.LabelService;
 import com.walking.backend.service.SectionService;
 import com.walking.backend.service.TaskService;
+import com.walking.backend.service.UserService;
 import com.walking.backend.service.mapper.task.CreateTaskRequestMapper;
 import com.walking.backend.service.mapper.task.TaskFullResponseMapper;
 import com.walking.backend.service.mapper.task.TaskPreviewResponseMapper;
@@ -26,7 +28,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static com.walking.backend.domain.model.ActivityType.*;
 
@@ -35,6 +40,7 @@ import static com.walking.backend.domain.model.ActivityType.*;
 @RequiredArgsConstructor
 public class TaskServiceImpl implements TaskService {
     private final SectionService sectionService;
+    private final UserService userService;
     private final LabelService labelService;
     private final TaskRepository taskRepository;
     private final CreateTaskRequestMapper createTaskRequestMapper;
@@ -53,8 +59,12 @@ public class TaskServiceImpl implements TaskService {
     public Page<TaskPreviewResponse> getTasks(Long sectionId, Pageable pageable) {
         Specification<Task> spec = Specification.where(TaskSpecification.hasSectionId(sectionId));
 
-        return taskRepository.findAll(spec, pageable)
-                .map(taskPreviewResponseMapper::toDto);
+        Page<Task> tasks = taskRepository.findAll(spec, pageable);
+
+        Map<Long, List<UserShortResponse>> assigneesByTaskId = loadAssigneesBatch(tasks.getContent());
+
+        return tasks.map(task ->
+                taskPreviewResponseMapper.toDto(task, assigneesByTaskId.getOrDefault(task.getId(), List.of())));
     }
 
     @Override
@@ -65,17 +75,23 @@ public class TaskServiceImpl implements TaskService {
                 .and(TaskSpecification.hasTitle(taskFilter.title()))
                 .and(TaskSpecification.hasCompleted(taskFilter.completed()))
                 .and(TaskSpecification.hasLabels(taskFilter.labelIds()))
+                .and(TaskSpecification.hasAssignees(taskFilter.assigneeIds()))
+                .and(TaskSpecification.hasDueDate(taskFilter.dueDateFrom(), taskFilter.dueDateTo()))
                 .and(TaskSpecification.hasCreatedBetween(taskFilter.createdFrom(), taskFilter.createdTo()));
 
-        return taskRepository.findAll(spec, pageable)
-                .map(taskPreviewResponseMapper::toDto);
+        Page<Task> tasks = taskRepository.findAll(spec, pageable);
+
+        Map<Long, List<UserShortResponse>> assigneesByTaskId = loadAssigneesBatch(tasks.getContent());
+
+        return tasks.map(task ->
+                taskPreviewResponseMapper.toDto(task, assigneesByTaskId.getOrDefault(task.getId(), List.of())));
     }
 
     @Override
     @PreAuthorize("@resourceAccessService.canViewTask(#taskId, principal.id)")
     public TaskFullResponse getTaskById(Long taskId) {
         return taskRepository.findByIdWithLabels(taskId)
-                .map(taskFullResponseMapper::toDto)
+                .map(task -> taskFullResponseMapper.toDto(task, loadAssignees(task)))
                 .orElseThrow(() -> new ObjectNotFoundException("Task with id %d not found".formatted(taskId)));
     }
 
@@ -88,6 +104,8 @@ public class TaskServiceImpl implements TaskService {
         task.setIsCompleted(false);
         task.setSection(sectionService.getProxySectionById(createTaskRequest.sectionId()));
 
+        assignUsersToTask(createTaskRequest.sectionId(), createTaskRequest.assigneeIds(), task);
+
         Double position = Optional.ofNullable(taskRepository.findMaxPositionBySectionId(createTaskRequest.sectionId()))
                 .map(p -> p + positionStep)
                 .orElse(positionStep);
@@ -95,7 +113,7 @@ public class TaskServiceImpl implements TaskService {
 
         Task savedTask = taskRepository.save(task);
 
-        return taskFullResponseMapper.toDto(savedTask);
+        return taskFullResponseMapper.toDto(savedTask, loadAssignees(task));
     }
 
     @Override
@@ -111,6 +129,9 @@ public class TaskServiceImpl implements TaskService {
 
         task.setTitle(newTitle);
         task.setDescription(updateTaskRequest.description());
+        task.setDueDate(updateTaskRequest.dueDate());
+
+        assignUsersToTask(task.getSection().getId(), updateTaskRequest.assigneeIds(), task);
 
         Task updatedTask = taskRepository.save(task);
 
@@ -120,7 +141,7 @@ public class TaskServiceImpl implements TaskService {
 
         publishActivity(board.getId(), board.getName(), TASK_UPDATED, description);
 
-        return taskFullResponseMapper.toDto(updatedTask);
+        return taskFullResponseMapper.toDto(updatedTask, loadAssignees(task));
     }
 
     @Override
@@ -139,7 +160,7 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     @Transactional
-    @PreAuthorize("@resourceAccessService.canEditTask(#taskId, principal.id)")
+    @PreAuthorize("@resourceAccessService.canToggleTask(#taskId, principal.id)")
     public TaskPreviewResponse toggleCompleted(Long taskId) {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ObjectNotFoundException("Task with id %d not found".formatted(taskId)));
@@ -159,7 +180,7 @@ public class TaskServiceImpl implements TaskService {
 
         publishActivity(board.getId(), board.getName(), type, description);
 
-        return taskPreviewResponseMapper.toDto(toggledTask);
+        return taskPreviewResponseMapper.toDto(toggledTask, loadAssignees(task));
     }
 
     @Override
@@ -228,7 +249,7 @@ public class TaskServiceImpl implements TaskService {
                     .formatted(oldSection.getName(), movedTask.getSection().getName()));
         }
 
-        return taskPreviewResponseMapper.toDto(movedTask);
+        return taskPreviewResponseMapper.toDto(movedTask, loadAssignees(task));
     }
 
     @Override
@@ -260,7 +281,7 @@ public class TaskServiceImpl implements TaskService {
         publishActivity(board.getId(), board.getName(),
                 TASK_LABEL_ADDED, "Added label %s to task %s".formatted(label.getName(), task.getTitle()));
 
-        return taskPreviewResponseMapper.toDto(task);
+        return taskPreviewResponseMapper.toDto(task, loadAssignees(task));
     }
 
     @Override
@@ -286,7 +307,7 @@ public class TaskServiceImpl implements TaskService {
         publishActivity(board.getId(), board.getName(),
                 TASK_LABEL_DELETED, "Removed label %s from task %s".formatted(label.getName(), task.getTitle()));
 
-        return taskPreviewResponseMapper.toDto(task);
+        return taskPreviewResponseMapper.toDto(task, loadAssignees(task));
     }
 
     private void reindexSection(Long sectionId) {
@@ -300,6 +321,50 @@ public class TaskServiceImpl implements TaskService {
         }
 
         taskRepository.saveAll(tasks);
+    }
+
+    private void assignUsersToTask(Long sectionId, Set<Long> assigneeIds, Task task) {
+        if (assigneeIds == null || assigneeIds.isEmpty()) {
+            task.getAssignees().clear();
+            return;
+        }
+
+        Set<User> assignees = userService.getBoardMembersForTask(sectionId, assigneeIds);
+
+        Set<Long> foundIds = assignees.stream()
+                .map(User::getId)
+                .collect(Collectors.toSet());
+
+        List<Long> invalidIds = assigneeIds.stream()
+                .filter(id -> !foundIds.contains(id))
+                .toList();
+
+        if (!invalidIds.isEmpty()) {
+            throw new InvalidTaskAssigneeException("Users with id %s are not members of the board".formatted(invalidIds));
+        }
+
+        task.setAssignees(assignees);
+    }
+
+    private List<UserShortResponse> loadAssignees(Task task) {
+        if (task.getAssignees().isEmpty()) return List.of();
+
+        Set<Long> userIds = task.getAssignees()
+                .stream()
+                .map(User::getId)
+                .collect(Collectors.toSet());
+
+        return userService.getUserShortsByIds(userIds);
+    }
+
+    private Map<Long, List<UserShortResponse>> loadAssigneesBatch(List<Task> tasks) {
+        Set<Long> taskIds = tasks.stream()
+                .map(Task::getId)
+                .collect(Collectors.toSet());
+
+        if (taskIds.isEmpty()) return Map.of();
+
+        return userService.getAssigneeByTaskIds(taskIds);
     }
 
     private void publishActivity(Long boardId, String boardName, ActivityType type, String description) {

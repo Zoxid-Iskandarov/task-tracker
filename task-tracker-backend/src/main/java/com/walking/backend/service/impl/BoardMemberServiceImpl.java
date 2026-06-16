@@ -11,6 +11,7 @@ import com.walking.backend.domain.exception.IllegalOperationException;
 import com.walking.backend.domain.exception.ObjectNotFoundException;
 import com.walking.backend.domain.model.*;
 import com.walking.backend.repository.BoardMemberRepository;
+import com.walking.backend.repository.TaskRepository;
 import com.walking.backend.repository.specification.BoardMemberSpecification;
 import com.walking.backend.security.principal.CustomUserDetails;
 import com.walking.backend.service.BoardMemberService;
@@ -36,6 +37,7 @@ import static com.walking.backend.domain.model.BoardRole.OWNER;
 @RequiredArgsConstructor
 public class BoardMemberServiceImpl implements BoardMemberService {
     private final BoardMemberRepository boardMemberRepository;
+    private final TaskRepository taskRepository;
     private final BoardService boardService;
     private final UserService userService;
     private final BoardMemberResponseMapper boardMemberResponseMapper;
@@ -99,6 +101,8 @@ public class BoardMemberServiceImpl implements BoardMemberService {
 
         BoardMember boardMember = getById(boardId, userId);
 
+        taskRepository.removeAssigneeFromBoardTasks(boardId, userId);
+
         publishActivity(boardId, boardMember.getBoard().getName(),
                 MEMBER_REMOVED, "Removed member %s".formatted(boardMember.getUser().getUsername()));
 
@@ -137,6 +141,8 @@ public class BoardMemberServiceImpl implements BoardMemberService {
         if (member.getRole() == OWNER && boardMemberRepository.countByIdBoardIdAndRole(boardId, OWNER) <= 1) {
             throw new IllegalOperationException("Last owner cannot leave the board");
         }
+
+        taskRepository.removeAssigneeFromBoardTasks(boardId, currentUserId);
 
         boardMemberRepository.delete(member);
     }

@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
+import java.util.Set;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
@@ -61,4 +62,13 @@ public interface UserRepository extends JpaRepository<User, Long> {
                 where u.id = :userId
             """)
     Optional<UserPublicProfileResponse> findUserPublicProfileByUserId(Long userId);
+
+    @Query("""
+            select u from Section s
+                    join s.board b
+                    join b.members m
+                    join m.user u
+                where s.id = :sectionId and u.id in :assigneeIds
+            """)
+    Set<User> findAllBySectionIdAndAssigneeIds(Long sectionId, Set<Long> assigneeIds);
 }

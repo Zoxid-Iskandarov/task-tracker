@@ -8,6 +8,9 @@ public record TaskFilter(
         Long sectionId,
         Boolean completed,
         List<Long> labelIds,
+        List<Long> assigneeIds,
+        LocalDateTime dueDateFrom,
+        LocalDateTime dueDateTo,
         LocalDateTime createdFrom,
         LocalDateTime createdTo) {
 }

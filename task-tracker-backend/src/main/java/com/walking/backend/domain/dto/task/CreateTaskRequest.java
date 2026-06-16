@@ -1,10 +1,10 @@
 package com.walking.backend.domain.dto.task;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
+
+import java.time.LocalDateTime;
+import java.util.Set;
 
 @Schema(description = "Request object for creating or updating a task")
 public record CreateTaskRequest(
@@ -23,6 +23,12 @@ public record CreateTaskRequest(
         )
         @Size(max = 5000, message = "Description cannot exceed 5000 characters")
         String description,
+
+        @FutureOrPresent(message = "Due date must be in the present or future")
+        LocalDateTime dueDate,
+
+        @Size(max = 20, message = "Task cannot have more than 20 assignees")
+        Set<@Positive(message = "Assignee id must be positive") Long> assigneeIds,
 
         @NotNull(message = "Section id cannot be null")
         @Positive(message = "Section id must be positive")

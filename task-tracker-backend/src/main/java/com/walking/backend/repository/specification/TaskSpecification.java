@@ -46,6 +46,25 @@ public class TaskSpecification {
         };
     }
 
+    public static Specification<Task> hasAssignees(List<Long> assigneeIds) {
+        return (root, query, cb) -> {
+            if (assigneeIds == null || assigneeIds.isEmpty()) return null;
+
+            query.distinct(true);
+
+            return root.join(Task_.assignees).get(User_.id).in(assigneeIds);
+        };
+    }
+
+    public static Specification<Task> hasDueDate(LocalDateTime from, LocalDateTime to) {
+        return (root, query, cb) -> {
+            if (from == null && to == null) return null;
+            if (from != null && to == null) return cb.greaterThanOrEqualTo(root.get(Task_.dueDate), from);
+            if (from == null) return cb.lessThanOrEqualTo(root.get(Task_.dueDate), to);
+            return cb.between(root.get(Task_.dueDate), from, to);
+        };
+    }
+
     public static Specification<Task> hasCreatedBetween(LocalDateTime from, LocalDateTime to) {
         return (root, query, cb) -> {
             if (from == null && to == null) return null;

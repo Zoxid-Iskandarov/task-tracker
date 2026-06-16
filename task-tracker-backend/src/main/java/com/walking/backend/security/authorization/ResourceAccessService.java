@@ -26,6 +26,14 @@ public class ResourceAccessService {
         return labelRepository.existsByLabelIdAndUserIdAndRoles(labelId, userId, List.of(OWNER));
     }
 
+    public boolean canToggleTask(Long taskId, Long userId) {
+        return canEditTask(taskId, userId) || isTaskAssignee(taskId, userId);
+    }
+
+    private boolean isTaskAssignee(Long taskId, Long userId) {
+        return taskRepository.existsAssigneeByTaskIdAndUserId(taskId, userId);
+    }
+
     public boolean canEditTask(Long taskId, Long userId) {
         return taskRepository.existsByTaskIdAndUserIdAndRoles(taskId, userId, List.of(OWNER, EDITOR));
     }

@@ -7,6 +7,7 @@ import com.walking.backend.domain.exception.InvalidFileException;
 import com.walking.backend.domain.exception.ObjectNotFoundException;
 import com.walking.backend.domain.model.User;
 import com.walking.backend.domain.model.UserProfile;
+import com.walking.backend.domain.projection.TaskAssigneeProjection;
 import com.walking.backend.repository.UserProfileRepository;
 import com.walking.backend.repository.UserRepository;
 import com.walking.backend.service.FileStorageService;
@@ -22,6 +23,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -63,6 +69,30 @@ public class UserServiceImpl implements UserService {
     public User getUserById(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new ObjectNotFoundException("User with id %d not found".formatted(userId)));
+    }
+
+    @Override
+    public Set<User> getBoardMembersForTask(Long sectionId, Set<Long> assigneeIds) {
+        return userRepository.findAllBySectionIdAndAssigneeIds(sectionId, assigneeIds);
+    }
+
+    @Override
+    public List<UserShortResponse> getUserShortsByIds(Set<Long> userIds) {
+        return userProfileRepository.findUserShortsByIds(userIds);
+    }
+
+    @Override
+    public Map<Long, List<UserShortResponse>> getAssigneeByTaskIds(Set<Long> taskIds) {
+        return userProfileRepository.findAssigneeProjectionByTaskIds(taskIds)
+                .stream()
+                .collect(Collectors.groupingBy(
+                        TaskAssigneeProjection::taskId,
+                        Collectors.mapping(
+                                p ->
+                                        new UserShortResponse(p.userId(), p.username(), p.displayName(), p.avatarUrl()),
+                                Collectors.toList())
+                        )
+                );
     }
 
     @Override
