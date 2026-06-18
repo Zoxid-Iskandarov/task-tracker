@@ -82,6 +82,12 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(AttachmentLimitExceededException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ErrorResponse handleAttachmentLimitExceededException(AttachmentLimitExceededException e) {
+        return buildErrorResponse(e.getMessage(), HttpStatus.CONFLICT);
+    }
+
     private ErrorResponse buildErrorResponse(String message, HttpStatus status) {
         return new ErrorResponse(status.value(), status.getReasonPhrase(), message, LocalDateTime.now());
     }
