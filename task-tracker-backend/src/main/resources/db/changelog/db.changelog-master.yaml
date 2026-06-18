@@ -17,3 +17,5 @@ databaseChangeLog:
       file: db/changelog/V1_0_8__create_user_profile.sql
   - include:
       file: db/changelog/V1_0_9__create_task_assignee.sql
+  - include:
+      file: db/changelog/V1_0_10__create_task_attachment.sql
