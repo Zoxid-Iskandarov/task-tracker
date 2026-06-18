@@ -82,6 +82,11 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public UserShortResponse getUserShortById(Long userId) {
+        return userProfileRepository.findUserShortById(userId);
+    }
+
+    @Override
     public Map<Long, List<UserShortResponse>> getAssigneeByTaskIds(Set<Long> taskIds) {
         return userProfileRepository.findAssigneeProjectionByTaskIds(taskIds)
                 .stream()
@@ -153,10 +158,10 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new ObjectNotFoundException("Profile with id %d not found".formatted(userId)));
 
         if (userProfile.getAvatarUrl() != null) {
-            fileStorageService.delete(userProfile.getAvatarUrl());
+            fileStorageService.deleteAvatar(userProfile.getAvatarUrl());
         }
 
-        String fileName = fileStorageService.upload(userId, file);
+        String fileName = fileStorageService.uploadAvatar(userId, file);
 
         userProfile.setAvatarUrl(fileName);
         userProfileRepository.save(userProfile);
@@ -171,7 +176,7 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new ObjectNotFoundException("Profile with id %d not found".formatted(userId)));
 
         if (userProfile.getAvatarUrl() != null) {
-            fileStorageService.delete(userProfile.getAvatarUrl());
+            fileStorageService.deleteAvatar(userProfile.getAvatarUrl());
             userProfile.setAvatarUrl(null);
             userProfileRepository.save(userProfile);
         }

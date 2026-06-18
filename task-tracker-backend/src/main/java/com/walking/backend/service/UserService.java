@@ -27,6 +27,8 @@ public interface UserService {
 
     List<UserShortResponse> getUserShortsByIds(Set<Long> userIds);
 
+    UserShortResponse getUserShortById(Long userId);
+
     Map<Long, List<UserShortResponse>> getAssigneeByTaskIds(Set<Long> taskIds);
 
     UserResponse createUser(SignUpRequest signUpRequest);
