@@ -4,7 +4,13 @@ import org.springframework.web.multipart.MultipartFile;
 
 public interface FileStorageService {
 
-    String upload(Long userId, MultipartFile file);
+    String uploadAvatar(Long userId, MultipartFile file);
 
-    void delete(String objectName);
+    String uploadAttachment(Long taskId, MultipartFile file);
+
+    void deleteAvatar(String objectName);
+
+    void deleteAttachment(String objectName);
+
+    String generatePresignedUrl(String objectName);
 }

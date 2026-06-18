@@ -1,71 +1,116 @@
 package com.walking.backend.service.impl;
 
+import com.walking.backend.props.AppProperties;
 import com.walking.backend.service.FileStorageService;
 import io.minio.*;
 import io.minio.errors.MinioException;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class FileStorageServiceImpl implements FileStorageService {
     private final MinioClient minioClient;
-
-    @Value("${app.minio.bucket}")
-    private final String bucket;
+    private final AppProperties.Minio minioProperties;
 
     @PostConstruct
     public void createBucket() throws MinioException {
         try {
-            boolean exists = minioClient.bucketExists(BucketExistsArgs.builder()
-                    .bucket(bucket)
+            boolean existsAvatarBucket = minioClient.bucketExists(BucketExistsArgs.builder()
+                    .bucket(minioProperties.getBucketAvatar())
                     .build());
 
-            if (!exists) {
+            boolean existsAttachmentBucket = minioClient.bucketExists(BucketExistsArgs.builder()
+                    .bucket(minioProperties.getBucketAttachment())
+                    .build());
+
+            if (!existsAvatarBucket) {
                 minioClient.makeBucket(MakeBucketArgs.builder()
-                        .bucket(bucket)
+                        .bucket(minioProperties.getBucketAvatar())
                         .build());
-                log.info("Minio bucket '{}' created successfully", bucket);
+                log.info("Minio bucket '{}' created successfully", minioProperties.getBucketAvatar());
 
                 String policy = """
-                {
-                    "Version": "2012-10-17",
-                    "Statement": [
                         {
-                            "Effect": "Allow",
-                            "Principal": {"AWS": ["*"]},
-                            "Action": ["s3:GetObject"],
-                            "Resource": ["arn:aws:s3:::%s/*"]
+                            "Version": "2012-10-17",
+                            "Statement": [
+                                {
+                                    "Effect": "Allow",
+                                    "Principal": {"AWS": ["*"]},
+                                    "Action": ["s3:GetObject"],
+                                    "Resource": ["arn:aws:s3:::%s/*"]
+                                }
+                            ]
                         }
-                    ]
-                }
-                """.formatted(bucket);
+                        """.formatted(minioProperties.getBucketAvatar());
 
                 minioClient.setBucketPolicy(SetBucketPolicyArgs.builder()
-                        .bucket(bucket)
+                        .bucket(minioProperties.getBucketAvatar())
                         .config(policy)
                         .build());
             } else {
-                log.info("Minio bucket '{}' already exists", bucket);
+                log.info("Minio bucket '{}' already exists", minioProperties.getBucketAvatar());
+            }
+
+            if (!existsAttachmentBucket) {
+                minioClient.makeBucket(MakeBucketArgs.builder()
+                        .bucket(minioProperties.getBucketAttachment())
+                        .build());
+                log.info("Minio bucket '{}' created successfully", minioProperties.getBucketAttachment());
+            } else {
+                log.info("Minio bucket '{}' already exists", minioProperties.getBucketAttachment());
             }
         } catch (MinioException e) {
-            log.error("Failed to initialize Minio bucket '{}'", bucket, e);
+            log.error("Failed to initialize Minio buckets", e);
             throw new MinioException(e);
         }
     }
 
     @Override
-    public String upload(Long userId, MultipartFile file) {
-        String objectName = "%d/%s".formatted(userId, UUID.randomUUID().toString());
+    public String uploadAvatar(Long userId, MultipartFile file) {
+        return upload(minioProperties.getBucketAvatar(), userId, file);
+    }
+
+    @Override
+    public String uploadAttachment(Long taskId, MultipartFile file) {
+        return upload(minioProperties.getBucketAttachment(), taskId, file);
+    }
+
+    @Override
+    public void deleteAvatar(String objectName) {
+        delete(minioProperties.getBucketAvatar(), objectName);
+    }
+
+    @Override
+    public void deleteAttachment(String objectName) {
+        delete(minioProperties.getBucketAttachment(), objectName);
+    }
+
+    @Override
+    public String generatePresignedUrl(String objectName) {
+        try {
+            return minioClient.getPresignedObjectUrl(GetPresignedObjectUrlArgs.builder()
+                    .bucket(minioProperties.getBucketAttachment())
+                    .object(objectName)
+                    .method(Http.Method.GET)
+                    .expiry(minioProperties.getAttachment().getPresignedUrlExpiration(), TimeUnit.MINUTES)
+                    .build());
+        } catch (MinioException e) {
+            throw new RuntimeException("Error generating presigned URL", e);
+        }
+    }
+
+    private String upload(String bucket, Long id, MultipartFile file) {
+        String objectName = "%d/%s".formatted(id, UUID.randomUUID().toString());
 
         try (InputStream inputStream = file.getInputStream()) {
             minioClient.putObject(PutObjectArgs.builder()
@@ -75,21 +120,20 @@ public class FileStorageServiceImpl implements FileStorageService {
                     .contentType(file.getContentType())
                     .build());
         } catch (IOException | MinioException e) {
-            throw new RuntimeException("Error uploading file to MinIO", e);
+            throw new RuntimeException("Error uploading file to bucket %s".formatted(bucket), e);
         }
 
         return objectName;
     }
 
-    @Override
-    public void delete(String objectName) {
+    private void delete(String bucket, String objectName) {
         try {
             minioClient.removeObject(RemoveObjectArgs.builder()
                     .bucket(bucket)
                     .object(objectName)
                     .build());
         } catch (MinioException e) {
-            log.error("Failed to delete file {} from MinIO", objectName, e);
+            log.error("Failed to deleteAttachment file {} from bucket {}", objectName, bucket, e);
         }
     }
 }
