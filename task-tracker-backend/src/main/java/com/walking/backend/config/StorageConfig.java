@@ -1,7 +1,7 @@
 package com.walking.backend.config;
 
+import com.walking.backend.props.AppProperties;
 import io.minio.MinioClient;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -9,13 +9,15 @@ import org.springframework.context.annotation.Configuration;
 public class StorageConfig {
 
     @Bean
-    public MinioClient minioClient(
-            @Value("${app.minio.access-key}") String accessKey,
-            @Value("${app.minio.secret-key}") String secretKey,
-            @Value("${app.minio.endpoint}") String endpoint) {
+    public AppProperties.Minio minioProperties(AppProperties appProperties) {
+        return appProperties.getMinio();
+    }
+
+    @Bean
+    public MinioClient minioClient(AppProperties.Minio minioProperties) {
         return MinioClient.builder()
-                .endpoint(endpoint)
-                .credentials(accessKey, secretKey)
+                .endpoint(minioProperties.getEndpoint())
+                .credentials(minioProperties.getAccessKey(), minioProperties.getSecretKey())
                 .build();
     }
 }

@@ -40,8 +40,8 @@ spring:
             UserActivityEvent:com.walking.backend.domain.dto.kafka.UserActivityEvent
   servlet:
     multipart:
-      max-file-size: 10MB
-      max-request-size: 10MB
+      max-file-size: 25MB
+      max-request-size: 25MB
 security:
   jwt:
     secret: ${JWT_SECRET}
@@ -67,4 +67,20 @@ app:
     endpoint: http://localhost:9000
     access-key: minioAdmin
     secret-key: minioAdmin
-    bucket: avatars
+    bucket-avatar: avatars
+    bucket-attachment: attachments
+    attachment:
+      presigned-url-expiration: 15
+      max-per-task: 10
+      allowed-content-types:
+        - image/jpeg
+        - image/png
+        - image/gif
+        - image/webp
+        - application/pdf
+        - application/zip
+        - application/x-zip-compressed
+        - text/plain
+        - application/msword
+        - application/vnd.openxmlformats-officedocument.wordprocessingml.document
+        - application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
