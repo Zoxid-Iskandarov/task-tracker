@@ -1,6 +1,6 @@
 package com.walking.backend.service.impl;
 
-import com.walking.backend.domain.dto.activity.UserActivityInternalEvent;
+import com.walking.backend.domain.event.UserActivityInternalEvent;
 import com.walking.backend.domain.dto.attachment.TaskAttachmentDownloadResponse;
 import com.walking.backend.domain.dto.attachment.TaskAttachmentResponse;
 import com.walking.backend.domain.dto.user.UserShortResponse;

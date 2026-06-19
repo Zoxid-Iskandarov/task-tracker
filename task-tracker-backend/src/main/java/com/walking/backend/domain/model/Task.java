@@ -10,7 +10,9 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -54,6 +56,9 @@ public class Task {
             joinColumns = @JoinColumn(name = "task_id"),
             inverseJoinColumns = @JoinColumn(name = "user_id"))
     private Set<User> assignees = new HashSet<>();
+
+    @OneToMany(mappedBy = "task", fetch = FetchType.LAZY, orphanRemoval = true)
+    private List<TaskAttachment> attachments = new ArrayList<>();
 
     @CreatedDate
     @Column(updatable = false)

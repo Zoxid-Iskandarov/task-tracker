@@ -37,7 +37,7 @@ spring:
           add.type.headers: true
           type.mapping: >
             MessageDto:com.walking.backend.domain.dto.kafka.MessageDto,
-            UserActivityEvent:com.walking.backend.domain.dto.kafka.UserActivityEvent
+            UserActivityEvent:com.walking.backend.domain.event.UserActivityEvent
   servlet:
     multipart:
       max-file-size: 25MB

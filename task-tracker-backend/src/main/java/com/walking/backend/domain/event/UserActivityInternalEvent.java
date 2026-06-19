@@ -1,4 +1,4 @@
-package com.walking.backend.domain.dto.activity;
+package com.walking.backend.domain.event;
 
 import com.walking.backend.domain.model.ActivityType;
 

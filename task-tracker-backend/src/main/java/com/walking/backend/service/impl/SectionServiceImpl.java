@@ -1,7 +1,7 @@
 package com.walking.backend.service.impl;
 
 import com.walking.backend.audit.annotation.TrackActivity;
-import com.walking.backend.domain.dto.activity.UserActivityInternalEvent;
+import com.walking.backend.domain.event.UserActivityInternalEvent;
 import com.walking.backend.domain.dto.section.CreateSectionRequest;
 import com.walking.backend.domain.dto.section.SectionResponse;
 import com.walking.backend.domain.dto.section.UpdateSectionRequest;

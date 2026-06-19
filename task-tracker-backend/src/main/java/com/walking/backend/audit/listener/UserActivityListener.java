@@ -1,7 +1,7 @@
 package com.walking.backend.audit.listener;
 
-import com.walking.backend.domain.dto.activity.UserActivityInternalEvent;
-import com.walking.backend.domain.dto.kafka.UserActivityEvent;
+import com.walking.backend.domain.event.UserActivityInternalEvent;
+import com.walking.backend.domain.event.UserActivityEvent;
 import com.walking.backend.domain.model.UserActivity;
 import com.walking.backend.repository.UserActivityRepository;
 import com.walking.backend.service.KafkaProducerService;

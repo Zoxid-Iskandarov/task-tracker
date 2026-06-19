@@ -1,7 +1,7 @@
 package com.walking.backend.service.impl;
 
 import com.walking.backend.audit.annotation.TrackActivity;
-import com.walking.backend.domain.dto.activity.UserActivityInternalEvent;
+import com.walking.backend.domain.event.UserActivityInternalEvent;
 import com.walking.backend.domain.dto.label.CreateLabelRequest;
 import com.walking.backend.domain.dto.label.LabelResponse;
 import com.walking.backend.domain.dto.label.UpdateLabelRequest;

@@ -1,7 +1,7 @@
 package com.walking.backend.service;
 
 import com.walking.backend.domain.dto.kafka.MessageDto;
-import com.walking.backend.domain.dto.kafka.UserActivityEvent;
+import com.walking.backend.domain.event.UserActivityEvent;
 
 public interface KafkaProducerService {
 
