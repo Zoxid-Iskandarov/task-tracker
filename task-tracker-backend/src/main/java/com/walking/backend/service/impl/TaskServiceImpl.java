@@ -1,7 +1,7 @@
 package com.walking.backend.service.impl;
 
 import com.walking.backend.audit.annotation.TrackActivity;
-import com.walking.backend.domain.dto.activity.UserActivityInternalEvent;
+import com.walking.backend.domain.event.FileCleanupEvent;
 import com.walking.backend.domain.event.UserActivityInternalEvent;
 import com.walking.backend.domain.dto.task.*;
 import com.walking.backend.domain.dto.user.UserShortResponse;
@@ -40,10 +40,10 @@ import static com.walking.backend.domain.model.ActivityType.*;
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class TaskServiceImpl implements TaskService {
+    private final TaskRepository taskRepository;
     private final SectionService sectionService;
     private final UserService userService;
     private final LabelService labelService;
-    private final TaskRepository taskRepository;
     private final CreateTaskRequestMapper createTaskRequestMapper;
     private final TaskFullResponseMapper taskFullResponseMapper;
     private final TaskPreviewResponseMapper taskPreviewResponseMapper;
@@ -149,14 +149,21 @@ public class TaskServiceImpl implements TaskService {
     @Transactional
     @PreAuthorize("@resourceAccessService.canEditTask(#taskId, principal.id)")
     public void deleteTask(Long taskId) {
-        Task task = taskRepository.findById(taskId)
+        Task task = taskRepository.findByIdWithAttachments(taskId)
                 .orElseThrow(() -> new ObjectNotFoundException("Task with id %d not found".formatted(taskId)));
 
         Board board = task.getSection().getBoard();
 
-        publishActivity(board.getId(), board.getName(), TASK_DELETED, "Deleted task %s".formatted(task.getTitle()));
+        List<String> filePaths = task.getAttachments()
+                .stream()
+                .map(TaskAttachment::getFilePath)
+                .toList();
 
         taskRepository.delete(task);
+
+        publishActivity(board.getId(), board.getName(), TASK_DELETED, "Deleted task %s".formatted(task.getTitle()));
+
+        if (!filePaths.isEmpty()) applicationEventPublisher.publishEvent(new FileCleanupEvent(filePaths));
     }
 
     @Override

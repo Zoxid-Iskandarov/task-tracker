@@ -4,9 +4,11 @@ import com.walking.backend.audit.annotation.TrackActivity;
 import com.walking.backend.domain.event.UserActivityInternalEvent;
 import com.walking.backend.domain.dto.board.BoardRequest;
 import com.walking.backend.domain.dto.board.BoardResponse;
+import com.walking.backend.domain.event.FileCleanupEvent;
 import com.walking.backend.domain.exception.ObjectNotFoundException;
 import com.walking.backend.domain.model.*;
 import com.walking.backend.repository.BoardRepository;
+import com.walking.backend.repository.TaskAttachmentRepository;
 import com.walking.backend.security.principal.CustomUserDetails;
 import com.walking.backend.service.BoardService;
 import com.walking.backend.service.UserService;
@@ -21,14 +23,17 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 import static com.walking.backend.domain.model.ActivityType.*;
 
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class BoardServiceImpl implements BoardService {
-    private final UserService userService;
     private final BoardRepository boardRepository;
+    private final TaskAttachmentRepository taskAttachmentRepository;
+    private final UserService userService;
     private final BoardRequestMapper boardRequestMapper;
     private final BoardResponseMapper boardResponseMapper;
     private final ApplicationEventPublisher applicationEventPublisher;
@@ -85,11 +90,15 @@ public class BoardServiceImpl implements BoardService {
         Board board = boardRepository.findById(boardId)
                 .orElseThrow(() -> new ObjectNotFoundException("Board with id %d not found".formatted(boardId)));
 
+        List<String> filePaths = taskAttachmentRepository.findAllFilePathByBoardId(boardId);
+
         String boardName = board.getName();
+
+        boardRepository.delete(board);
 
         publishActivity(boardId, boardName, BOARD_DELETED, "Deleted board %s".formatted(boardName));
 
-        boardRepository.delete(board);
+        if (!filePaths.isEmpty()) applicationEventPublisher.publishEvent(new FileCleanupEvent(filePaths));
     }
 
     private void publishActivity(Long boardId, String boardName, ActivityType type, String description) {

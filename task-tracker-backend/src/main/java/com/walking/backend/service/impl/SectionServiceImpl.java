@@ -5,12 +5,14 @@ import com.walking.backend.domain.event.UserActivityInternalEvent;
 import com.walking.backend.domain.dto.section.CreateSectionRequest;
 import com.walking.backend.domain.dto.section.SectionResponse;
 import com.walking.backend.domain.dto.section.UpdateSectionRequest;
+import com.walking.backend.domain.event.FileCleanupEvent;
 import com.walking.backend.domain.exception.DuplicateException;
 import com.walking.backend.domain.exception.ObjectNotFoundException;
 import com.walking.backend.domain.model.ActivityType;
 import com.walking.backend.domain.model.Board;
 import com.walking.backend.domain.model.Section;
 import com.walking.backend.repository.SectionRepository;
+import com.walking.backend.repository.TaskAttachmentRepository;
 import com.walking.backend.security.principal.CustomUserDetails;
 import com.walking.backend.service.BoardService;
 import com.walking.backend.service.SectionService;
@@ -25,6 +27,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 
 import static com.walking.backend.domain.model.ActivityType.*;
@@ -33,8 +36,9 @@ import static com.walking.backend.domain.model.ActivityType.*;
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class SectionServiceImpl implements SectionService {
-    private final BoardService boardService;
     private final SectionRepository sectionRepository;
+    private final TaskAttachmentRepository taskAttachmentRepository;
+    private final BoardService boardService;
     private final CreateSectionRequestMapper createSectionRequestMapper;
     private final SectionResponseMapper sectionResponseMapper;
     private final ApplicationEventPublisher applicationEventPublisher;
@@ -105,12 +109,16 @@ public class SectionServiceImpl implements SectionService {
         Section section = sectionRepository.findById(sectionId)
                 .orElseThrow(() -> new ObjectNotFoundException("Section with id %d not found".formatted(sectionId)));
 
+        List<String> filePaths = taskAttachmentRepository.findAllFilePathBySectionId(sectionId);
+
         Board board = section.getBoard();
+
+        sectionRepository.delete(section);
 
         publishActivity(board.getId(), board.getName(),
                 SECTION_DELETED, "Deleted section %s".formatted(section.getName()));
 
-        sectionRepository.delete(section);
+        if (!filePaths.isEmpty()) applicationEventPublisher.publishEvent(new FileCleanupEvent(filePaths));
     }
 
     private void publishActivity(Long boardId, String boardName, ActivityType type, String description) {
