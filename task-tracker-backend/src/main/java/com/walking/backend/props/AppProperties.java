@@ -46,6 +46,7 @@ public class AppProperties {
         private String secretKey;
         private String bucketAvatar;
         private String bucketAttachment;
+        private int batchDeleteSize;
         private Attachment attachment = new Attachment();
 
         @Data

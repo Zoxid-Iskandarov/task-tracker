@@ -1,9 +1,12 @@
 package com.walking.backend.service.impl;
 
+import com.google.common.collect.Lists;
 import com.walking.backend.props.AppProperties;
 import com.walking.backend.service.FileStorageService;
 import io.minio.*;
 import io.minio.errors.MinioException;
+import io.minio.messages.DeleteRequest;
+import io.minio.messages.DeleteResult;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,6 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -109,6 +113,11 @@ public class FileStorageServiceImpl implements FileStorageService {
         }
     }
 
+    @Override
+    public void deleteAttachments(List<String> objectNames) {
+        batchDelete(minioProperties.getBucketAttachment(), objectNames);
+    }
+
     private String upload(String bucket, Long id, MultipartFile file) {
         String objectName = "%d/%s".formatted(id, UUID.randomUUID().toString());
 
@@ -134,6 +143,38 @@ public class FileStorageServiceImpl implements FileStorageService {
                     .build());
         } catch (MinioException e) {
             log.error("Failed to deleteAttachment file {} from bucket {}", objectName, bucket, e);
+        }
+    }
+
+    private void batchDelete(String bucket, List<String> objectNames) {
+        if (objectNames == null || objectNames.isEmpty()) {
+            return;
+        }
+
+        List<List<String>> partitions = Lists.partition(objectNames, minioProperties.getBatchDeleteSize());
+
+        for (List<String> partition : partitions) {
+            List<DeleteRequest.Object> objects = partition.stream()
+                    .map(DeleteRequest.Object::new)
+                    .toList();
+
+            try {
+                Iterable<Result<DeleteResult.Error>> results = minioClient.removeObjects(RemoveObjectsArgs.builder()
+                                .bucket(bucket)
+                                .objects(objects)
+                                .build());
+
+                for (Result<DeleteResult.Error> result : results) {
+                    DeleteResult.Error error = result.get();
+                    if (error != null) {
+                        log.error("Failed to delete file: {} with error: {}", error.objectName(), error.message());
+                    }
+                }
+
+                log.info("Successfully processed batch deletion for {} files", objects.size());
+            } catch (Exception e) {
+                log.error("Batch deletion request failed for bucket {}", bucket, e);
+            }
         }
     }
 }

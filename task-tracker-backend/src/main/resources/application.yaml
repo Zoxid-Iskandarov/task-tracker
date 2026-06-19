@@ -69,6 +69,7 @@ app:
     secret-key: minioAdmin
     bucket-avatar: avatars
     bucket-attachment: attachments
+    batch-delete-size: 1000
     attachment:
       presigned-url-expiration: 15
       max-per-task: 10
