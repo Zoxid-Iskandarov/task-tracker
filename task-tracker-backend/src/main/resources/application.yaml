@@ -37,11 +37,11 @@ spring:
           add.type.headers: true
           type.mapping: >
             MessageDto:com.walking.backend.domain.dto.kafka.MessageDto,
-            UserActivityEvent:com.walking.backend.domain.dto.kafka.UserActivityEvent
+            UserActivityEvent:com.walking.backend.domain.event.UserActivityEvent
   servlet:
     multipart:
-      max-file-size: 10MB
-      max-request-size: 10MB
+      max-file-size: 25MB
+      max-request-size: 25MB
 security:
   jwt:
     secret: ${JWT_SECRET}
@@ -67,4 +67,21 @@ app:
     endpoint: http://localhost:9000
     access-key: minioAdmin
     secret-key: minioAdmin
-    bucket: avatars
+    bucket-avatar: avatars
+    bucket-attachment: attachments
+    batch-delete-size: 1000
+    attachment:
+      presigned-url-expiration: 15
+      max-per-task: 10
+      allowed-content-types:
+        - image/jpeg
+        - image/png
+        - image/gif
+        - image/webp
+        - application/pdf
+        - application/zip
+        - application/x-zip-compressed
+        - text/plain
+        - application/msword
+        - application/vnd.openxmlformats-officedocument.wordprocessingml.document
+        - application/vnd.openxmlformats-officedocument.spreadsheetml.sheet

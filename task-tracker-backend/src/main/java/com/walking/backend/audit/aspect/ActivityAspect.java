@@ -2,7 +2,7 @@ package com.walking.backend.audit.aspect;
 
 import com.walking.backend.audit.annotation.TrackActivity;
 import com.walking.backend.audit.service.BoardLookupService;
-import com.walking.backend.domain.dto.activity.UserActivityInternalEvent;
+import com.walking.backend.domain.event.UserActivityInternalEvent;
 import com.walking.backend.domain.dto.board.BoardResponse;
 import com.walking.backend.domain.dto.label.LabelResponse;
 import com.walking.backend.domain.dto.section.SectionResponse;

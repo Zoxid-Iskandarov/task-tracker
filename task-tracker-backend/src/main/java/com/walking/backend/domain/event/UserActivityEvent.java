@@ -1,4 +1,4 @@
-package com.walking.backend.domain.dto.kafka;
+package com.walking.backend.domain.event;
 
 import lombok.*;
 

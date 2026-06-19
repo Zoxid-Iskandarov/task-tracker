@@ -10,11 +10,11 @@ import com.walking.backend.domain.model.UserProfile;
 import com.walking.backend.domain.projection.TaskAssigneeProjection;
 import com.walking.backend.repository.UserProfileRepository;
 import com.walking.backend.repository.UserRepository;
-import com.walking.backend.service.FileStorageService;
 import com.walking.backend.service.UserService;
 import com.walking.backend.service.mapper.user.SignUpRequestMapper;
 import com.walking.backend.service.mapper.user.UserProfileResponseMapper;
 import com.walking.backend.service.mapper.user.UserResponseMapper;
+import com.walking.backend.storage.service.FileStorageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -79,6 +79,11 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<UserShortResponse> getUserShortsByIds(Set<Long> userIds) {
         return userProfileRepository.findUserShortsByIds(userIds);
+    }
+
+    @Override
+    public UserShortResponse getUserShortById(Long userId) {
+        return userProfileRepository.findUserShortById(userId);
     }
 
     @Override
@@ -153,10 +158,10 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new ObjectNotFoundException("Profile with id %d not found".formatted(userId)));
 
         if (userProfile.getAvatarUrl() != null) {
-            fileStorageService.delete(userProfile.getAvatarUrl());
+            fileStorageService.deleteAvatar(userProfile.getAvatarUrl());
         }
 
-        String fileName = fileStorageService.upload(userId, file);
+        String fileName = fileStorageService.uploadAvatar(userId, file);
 
         userProfile.setAvatarUrl(fileName);
         userProfileRepository.save(userProfile);
@@ -171,7 +176,7 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new ObjectNotFoundException("Profile with id %d not found".formatted(userId)));
 
         if (userProfile.getAvatarUrl() != null) {
-            fileStorageService.delete(userProfile.getAvatarUrl());
+            fileStorageService.deleteAvatar(userProfile.getAvatarUrl());
             userProfile.setAvatarUrl(null);
             userProfileRepository.save(userProfile);
         }

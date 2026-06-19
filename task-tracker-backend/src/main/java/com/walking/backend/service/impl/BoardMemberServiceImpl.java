@@ -1,7 +1,7 @@
 package com.walking.backend.service.impl;
 
 import com.walking.backend.audit.annotation.TrackActivity;
-import com.walking.backend.domain.dto.activity.UserActivityInternalEvent;
+import com.walking.backend.audit.service.ActivityService;
 import com.walking.backend.domain.dto.boardMember.BoardMemberFilter;
 import com.walking.backend.domain.dto.boardMember.BoardMemberRequest;
 import com.walking.backend.domain.dto.boardMember.BoardMemberResponse;
@@ -9,7 +9,9 @@ import com.walking.backend.domain.dto.kafka.MessageDto;
 import com.walking.backend.domain.exception.DuplicateException;
 import com.walking.backend.domain.exception.IllegalOperationException;
 import com.walking.backend.domain.exception.ObjectNotFoundException;
-import com.walking.backend.domain.model.*;
+import com.walking.backend.domain.model.Board;
+import com.walking.backend.domain.model.BoardMember;
+import com.walking.backend.domain.model.User;
 import com.walking.backend.repository.BoardMemberRepository;
 import com.walking.backend.repository.TaskRepository;
 import com.walking.backend.repository.specification.BoardMemberSpecification;
@@ -20,12 +22,10 @@ import com.walking.backend.service.KafkaProducerService;
 import com.walking.backend.service.UserService;
 import com.walking.backend.service.mapper.boardMember.BoardMemberResponseMapper;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,9 +40,9 @@ public class BoardMemberServiceImpl implements BoardMemberService {
     private final TaskRepository taskRepository;
     private final BoardService boardService;
     private final UserService userService;
-    private final BoardMemberResponseMapper boardMemberResponseMapper;
     private final KafkaProducerService kafkaProducerService;
-    private final ApplicationEventPublisher applicationEventPublisher;
+    private final ActivityService activityService;
+    private final BoardMemberResponseMapper boardMemberResponseMapper;
 
     @Override
     @PreAuthorize("@resourceAccessService.canViewBoard(#boardId, principal.id)")
@@ -100,13 +100,14 @@ public class BoardMemberServiceImpl implements BoardMemberService {
         }
 
         BoardMember boardMember = getById(boardId, userId);
+        Board board = boardMember.getBoard();
 
         taskRepository.removeAssigneeFromBoardTasks(boardId, userId);
 
-        publishActivity(boardId, boardMember.getBoard().getName(),
-                MEMBER_REMOVED, "Removed member %s".formatted(boardMember.getUser().getUsername()));
-
         boardMemberRepository.delete(boardMember);
+
+        activityService.publish(board, MEMBER_REMOVED,
+                "Removed member %s".formatted(boardMember.getUser().getUsername()));
     }
 
     @Override
@@ -118,6 +119,7 @@ public class BoardMemberServiceImpl implements BoardMemberService {
         }
 
         BoardMember boardMember = getById(boardId, boardMemberRequest.userId());
+        Board board = boardMember.getBoard();
 
         String oldRole = boardMember.getRole().name();
         String newRole = boardMemberRequest.role().name();
@@ -125,7 +127,7 @@ public class BoardMemberServiceImpl implements BoardMemberService {
         boardMember.setRole(boardMemberRequest.role());
         boardMemberRepository.flush();
 
-        publishActivity(boardId, boardMember.getBoard().getName(), MEMBER_ROLE_CHANGED,
+        activityService.publish(board, MEMBER_ROLE_CHANGED,
                 "Changed role for %s from %s to %s".formatted(boardMember.getUser().getUsername(), oldRole, newRole));
 
         return boardMemberResponseMapper.toDto(boardMember);
@@ -145,23 +147,6 @@ public class BoardMemberServiceImpl implements BoardMemberService {
         taskRepository.removeAssigneeFromBoardTasks(boardId, currentUserId);
 
         boardMemberRepository.delete(member);
-    }
-
-    private void publishActivity(Long boardId, String boardName, ActivityType type, String description) {
-        CustomUserDetails userDetails = getCurrentUser();
-
-        applicationEventPublisher.publishEvent(new UserActivityInternalEvent(
-                userDetails.id(),
-                userDetails.username(),
-                userDetails.email(),
-                boardId,
-                boardName,
-                type,
-                description));
-    }
-
-    private CustomUserDetails getCurrentUser() {
-        return (CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
     }
 
     private MessageDto createBoardInvitationMessage(User user, String boardName, String inviterName) {

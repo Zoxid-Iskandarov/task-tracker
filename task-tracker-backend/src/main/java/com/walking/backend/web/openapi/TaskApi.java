@@ -1,8 +1,12 @@
 package com.walking.backend.web.openapi;
 
+import com.walking.backend.domain.dto.attachment.TaskAttachmentDownloadResponse;
+import com.walking.backend.domain.dto.attachment.TaskAttachmentResponse;
 import com.walking.backend.domain.dto.task.*;
+import com.walking.backend.security.principal.CustomUserDetails;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
@@ -12,6 +16,9 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 @Tag(name = "Tasks Management", description = "Endpoints for managing task lifecycles, states, positions, and label assignments")
 @SecurityRequirement(name = "Bearer Authentication")
@@ -123,6 +130,65 @@ public interface TaskApi {
             @ApiResponse(responseCode = "404", description = "Task not found")
     })
     ResponseEntity<?> deleteTask(
-            @Parameter(description = "ID of the task to delete") Long taskId
+            @Parameter(description = "ID of the task to deleteAttachment") Long taskId
+    );
+
+    @Operation(
+            summary = "Get all attachments for a task",
+            description = "Retrieves a list of all files uploaded to the specified task."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "List of attachments retrieved successfully",
+                    content = @Content(array = @ArraySchema(schema = @Schema(implementation = TaskAttachmentResponse.class)))),
+            @ApiResponse(responseCode = "403", description = "Forbidden - No access to this task"),
+            @ApiResponse(responseCode = "404", description = "Task not found")
+    })
+    List<TaskAttachmentResponse> getAttachments(
+            @Parameter(description = "ID of the task") Long taskId
+    );
+
+    @Operation(
+            summary = "Get download link for an attachment",
+            description = "Generates a time-limited presigned URL to download a specific file."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Download URL generated successfully",
+                    content = @Content(schema = @Schema(implementation = TaskAttachmentDownloadResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Forbidden - No access to this task or attachment"),
+            @ApiResponse(responseCode = "404", description = "Attachment not found")
+    })
+    TaskAttachmentDownloadResponse getDownloadAttachment(
+            @Parameter(description = "ID of the task") Long taskId,
+            @Parameter(description = "ID of the attachment") Long attachmentId
+    );
+
+    @Operation(
+            summary = "Upload a file to a task",
+            description = "Uploads a new file as an attachment to the task. Respects file size and type limitations defined in system configuration."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "File uploaded successfully",
+                    content = @Content(schema = @Schema(implementation = TaskAttachmentResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid file or limit exceeded"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - No access to edit this task")
+    })
+    TaskAttachmentResponse uploadAttachment(
+            @Parameter(description = "ID of the task") Long taskId,
+            @Parameter(description = "File to upload") MultipartFile file,
+            @Parameter(hidden = true) CustomUserDetails userDetails
+    );
+
+    @Operation(
+            summary = "Delete an attachment",
+            description = "Permanently removes a file attachment from the task and storage."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Attachment successfully deleted"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - No access to edit this task"),
+            @ApiResponse(responseCode = "404", description = "Attachment not found")
+    })
+    ResponseEntity<Void> deleteAttachment(
+            @Parameter(description = "ID of the task") Long taskId,
+            @Parameter(description = "ID of the attachment") Long attachmentId
     );
 }

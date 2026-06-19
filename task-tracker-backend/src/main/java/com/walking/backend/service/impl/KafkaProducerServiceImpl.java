@@ -1,7 +1,7 @@
 package com.walking.backend.service.impl;
 
 import com.walking.backend.domain.dto.kafka.MessageDto;
-import com.walking.backend.domain.dto.kafka.UserActivityEvent;
+import com.walking.backend.domain.event.UserActivityEvent;
 import com.walking.backend.service.KafkaProducerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

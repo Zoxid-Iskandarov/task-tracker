@@ -1,30 +1,29 @@
 package com.walking.backend.service.impl;
 
 import com.walking.backend.audit.annotation.TrackActivity;
-import com.walking.backend.domain.dto.activity.UserActivityInternalEvent;
+import com.walking.backend.audit.service.ActivityService;
 import com.walking.backend.domain.dto.section.CreateSectionRequest;
 import com.walking.backend.domain.dto.section.SectionResponse;
 import com.walking.backend.domain.dto.section.UpdateSectionRequest;
 import com.walking.backend.domain.exception.DuplicateException;
 import com.walking.backend.domain.exception.ObjectNotFoundException;
-import com.walking.backend.domain.model.ActivityType;
 import com.walking.backend.domain.model.Board;
 import com.walking.backend.domain.model.Section;
 import com.walking.backend.repository.SectionRepository;
-import com.walking.backend.security.principal.CustomUserDetails;
+import com.walking.backend.repository.TaskAttachmentRepository;
 import com.walking.backend.service.BoardService;
 import com.walking.backend.service.SectionService;
 import com.walking.backend.service.mapper.section.CreateSectionRequestMapper;
 import com.walking.backend.service.mapper.section.SectionResponseMapper;
+import com.walking.backend.storage.service.ResourceCleanupService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 
 import static com.walking.backend.domain.model.ActivityType.*;
@@ -33,11 +32,13 @@ import static com.walking.backend.domain.model.ActivityType.*;
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class SectionServiceImpl implements SectionService {
-    private final BoardService boardService;
     private final SectionRepository sectionRepository;
+    private final TaskAttachmentRepository taskAttachmentRepository;
+    private final BoardService boardService;
+    private final ActivityService activityService;
+    private final ResourceCleanupService resourceCleanupService;
     private final CreateSectionRequestMapper createSectionRequestMapper;
     private final SectionResponseMapper sectionResponseMapper;
-    private final ApplicationEventPublisher applicationEventPublisher;
 
     @Override
     @PreAuthorize("@resourceAccessService.canViewBoard(#boardId, principal.id)")
@@ -92,8 +93,7 @@ public class SectionServiceImpl implements SectionService {
 
         Section savedSection = sectionRepository.save(section);
 
-        publishActivity(board.getId(), board.getName(),
-                SECTION_UPDATED, "Renamed section from %s to %s".formatted(oldName, newName));
+        activityService.publish(board, SECTION_UPDATED, "Renamed section from %s to %s".formatted(oldName, newName));
 
         return sectionResponseMapper.toDto(savedSection);
     }
@@ -105,28 +105,13 @@ public class SectionServiceImpl implements SectionService {
         Section section = sectionRepository.findById(sectionId)
                 .orElseThrow(() -> new ObjectNotFoundException("Section with id %d not found".formatted(sectionId)));
 
+        List<String> filePaths = taskAttachmentRepository.findAllFilePathBySectionId(sectionId);
+
         Board board = section.getBoard();
 
-        publishActivity(board.getId(), board.getName(),
-                SECTION_DELETED, "Deleted section %s".formatted(section.getName()));
-
         sectionRepository.delete(section);
-    }
 
-    private void publishActivity(Long boardId, String boardName, ActivityType type, String description) {
-        CustomUserDetails userDetails = getCurrentUser();
-
-        applicationEventPublisher.publishEvent(new UserActivityInternalEvent(
-                userDetails.id(),
-                userDetails.username(),
-                userDetails.email(),
-                boardId,
-                boardName,
-                type,
-                description));
-    }
-
-    private CustomUserDetails getCurrentUser() {
-        return (CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        activityService.publish(board, SECTION_DELETED, "Deleted section %s".formatted(section.getName()));
+        resourceCleanupService.cleanupFiles(filePaths);
     }
 }

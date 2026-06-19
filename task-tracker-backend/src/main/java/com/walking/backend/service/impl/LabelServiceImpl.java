@@ -1,27 +1,23 @@
 package com.walking.backend.service.impl;
 
 import com.walking.backend.audit.annotation.TrackActivity;
-import com.walking.backend.domain.dto.activity.UserActivityInternalEvent;
+import com.walking.backend.audit.service.ActivityService;
 import com.walking.backend.domain.dto.label.CreateLabelRequest;
 import com.walking.backend.domain.dto.label.LabelResponse;
 import com.walking.backend.domain.dto.label.UpdateLabelRequest;
 import com.walking.backend.domain.exception.DuplicateException;
 import com.walking.backend.domain.exception.LabelLimitExceededException;
 import com.walking.backend.domain.exception.ObjectNotFoundException;
-import com.walking.backend.domain.model.ActivityType;
 import com.walking.backend.domain.model.Board;
 import com.walking.backend.domain.model.Label;
 import com.walking.backend.repository.LabelRepository;
-import com.walking.backend.security.principal.CustomUserDetails;
 import com.walking.backend.service.BoardService;
 import com.walking.backend.service.LabelService;
 import com.walking.backend.service.mapper.label.CreateLabelRequestMapper;
 import com.walking.backend.service.mapper.label.LabelResponseMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,9 +32,9 @@ import static com.walking.backend.domain.model.ActivityType.*;
 public class LabelServiceImpl implements LabelService {
     private final BoardService boardService;
     private final LabelRepository labelRepository;
+    private final ActivityService activityService;
     private final CreateLabelRequestMapper createLabelRequestMapper;
     private final LabelResponseMapper labelResponseMapper;
-    private final ApplicationEventPublisher applicationEventPublisher;
 
     @Value("${app.label.max-per-board}")
     private final int maxLabelsPerBoard;
@@ -109,7 +105,7 @@ public class LabelServiceImpl implements LabelService {
                 ? "Updated label %s".formatted(newName)
                 : "Renamed label from %s to %s".formatted(oldName, newName);
 
-        publishActivity(board.getId(), board.getName(), LABEL_UPDATED, description);
+        activityService.publish(board, LABEL_UPDATED, description);
 
         return labelResponseMapper.toDto(savedLabel);
     }
@@ -123,25 +119,8 @@ public class LabelServiceImpl implements LabelService {
 
         Board board = label.getBoard();
 
-        publishActivity(board.getId(), board.getName(), LABEL_DELETED, "Deleted label %s".formatted(label.getName()));
-
         labelRepository.delete(label);
-    }
 
-    private void publishActivity(Long boardId, String boardName, ActivityType type, String description) {
-        CustomUserDetails userDetails = getCurrentUser();
-
-        applicationEventPublisher.publishEvent(new UserActivityInternalEvent(
-                userDetails.id(),
-                userDetails.username(),
-                userDetails.email(),
-                boardId,
-                boardName,
-                type,
-                description));
-    }
-
-    private CustomUserDetails getCurrentUser() {
-        return (CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        activityService.publish(board, LABEL_DELETED, "Deleted label %s".formatted(label.getName()));
     }
 }

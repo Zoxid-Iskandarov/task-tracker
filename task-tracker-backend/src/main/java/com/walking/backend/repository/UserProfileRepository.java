@@ -29,6 +29,18 @@ public interface UserProfileRepository extends JpaRepository<UserProfile, Long> 
     List<UserShortResponse> findUserShortsByIds(Set<Long> userIds);
 
     @Query("""
+            select new com.walking.backend.domain.dto.user.UserShortResponse(
+                        u.id,
+                        u.username,
+                        p.displayName,
+                        p.avatarUrl)
+            from UserProfile p
+                    join p.user u
+                where u.id = :userId
+            """)
+    UserShortResponse findUserShortById(Long userId);
+
+    @Query("""
             select new com.walking.backend.domain.projection.TaskAssigneeProjection(
                         t.id,
                         u.id,

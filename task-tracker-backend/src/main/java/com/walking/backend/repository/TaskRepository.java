@@ -68,4 +68,11 @@ public interface TaskRepository extends JpaRepository<Task, Long>, JpaSpecificat
                             WHERE s.board_id = :boardId)
             """, nativeQuery = true)
     void removeAssigneeFromBoardTasks(Long boardId, Long userId);
+
+    @Query("""
+            select t from Task t
+                    left join fetch t.attachments
+                where t.id = :taskId
+            """)
+    Optional<Task> findByIdWithAttachments(Long taskId);
 }
