@@ -1,8 +1,7 @@
-package com.walking.backend.service.impl;
+package com.walking.backend.storage.service;
 
 import com.google.common.collect.Lists;
 import com.walking.backend.props.AppProperties;
-import com.walking.backend.service.FileStorageService;
 import io.minio.*;
 import io.minio.errors.MinioException;
 import io.minio.messages.DeleteRequest;
@@ -22,7 +21,7 @@ import java.util.concurrent.TimeUnit;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class FileStorageServiceImpl implements FileStorageService {
+public class FileStorageService {
     private final MinioClient minioClient;
     private final AppProperties.Minio minioProperties;
 
@@ -79,27 +78,22 @@ public class FileStorageServiceImpl implements FileStorageService {
         }
     }
 
-    @Override
     public String uploadAvatar(Long userId, MultipartFile file) {
         return upload(minioProperties.getBucketAvatar(), userId, file);
     }
 
-    @Override
     public String uploadAttachment(Long taskId, MultipartFile file) {
         return upload(minioProperties.getBucketAttachment(), taskId, file);
     }
 
-    @Override
     public void deleteAvatar(String objectName) {
         delete(minioProperties.getBucketAvatar(), objectName);
     }
 
-    @Override
     public void deleteAttachment(String objectName) {
         delete(minioProperties.getBucketAttachment(), objectName);
     }
 
-    @Override
     public String generatePresignedUrl(String objectName) {
         try {
             return minioClient.getPresignedObjectUrl(GetPresignedObjectUrlArgs.builder()
@@ -113,7 +107,6 @@ public class FileStorageServiceImpl implements FileStorageService {
         }
     }
 
-    @Override
     public void deleteAttachments(List<String> objectNames) {
         batchDelete(minioProperties.getBucketAttachment(), objectNames);
     }

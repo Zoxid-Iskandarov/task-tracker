@@ -1,15 +1,13 @@
 package com.walking.backend.service.impl;
 
 import com.walking.backend.audit.annotation.TrackActivity;
-import com.walking.backend.domain.event.FileCleanupEvent;
-import com.walking.backend.domain.event.UserActivityInternalEvent;
+import com.walking.backend.audit.service.ActivityService;
 import com.walking.backend.domain.dto.task.*;
 import com.walking.backend.domain.dto.user.UserShortResponse;
 import com.walking.backend.domain.exception.*;
 import com.walking.backend.domain.model.*;
 import com.walking.backend.repository.TaskRepository;
 import com.walking.backend.repository.specification.TaskSpecification;
-import com.walking.backend.security.principal.CustomUserDetails;
 import com.walking.backend.service.LabelService;
 import com.walking.backend.service.SectionService;
 import com.walking.backend.service.TaskService;
@@ -17,14 +15,13 @@ import com.walking.backend.service.UserService;
 import com.walking.backend.service.mapper.task.CreateTaskRequestMapper;
 import com.walking.backend.service.mapper.task.TaskFullResponseMapper;
 import com.walking.backend.service.mapper.task.TaskPreviewResponseMapper;
+import com.walking.backend.storage.service.ResourceCleanupService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,10 +41,11 @@ public class TaskServiceImpl implements TaskService {
     private final SectionService sectionService;
     private final UserService userService;
     private final LabelService labelService;
+    private final ActivityService activityService;
+    private final ResourceCleanupService resourceCleanupService;
     private final CreateTaskRequestMapper createTaskRequestMapper;
     private final TaskFullResponseMapper taskFullResponseMapper;
     private final TaskPreviewResponseMapper taskPreviewResponseMapper;
-    private final ApplicationEventPublisher applicationEventPublisher;
 
     @Value("${app.label.max-per-task}")
     private final int maxLabelsPerTask;
@@ -140,7 +138,7 @@ public class TaskServiceImpl implements TaskService {
                 ? "Updated task %s".formatted(newTitle)
                 : "Renamed task from %s to %s".formatted(oldTitle, newTitle);
 
-        publishActivity(board.getId(), board.getName(), TASK_UPDATED, description);
+        activityService.publish(board, TASK_UPDATED, description);
 
         return taskFullResponseMapper.toDto(updatedTask, loadAssignees(task));
     }
@@ -161,9 +159,8 @@ public class TaskServiceImpl implements TaskService {
 
         taskRepository.delete(task);
 
-        publishActivity(board.getId(), board.getName(), TASK_DELETED, "Deleted task %s".formatted(task.getTitle()));
-
-        if (!filePaths.isEmpty()) applicationEventPublisher.publishEvent(new FileCleanupEvent(filePaths));
+        activityService.publish(board, TASK_DELETED, "Deleted task %s".formatted(task.getTitle()));
+        resourceCleanupService.cleanupFiles(filePaths);
     }
 
     @Override
@@ -186,7 +183,7 @@ public class TaskServiceImpl implements TaskService {
                 ? "Completed task %s".formatted(task.getTitle())
                 : "Reopened task %s".formatted(task.getTitle());
 
-        publishActivity(board.getId(), board.getName(), type, description);
+        activityService.publish(board, type, description);
 
         return taskPreviewResponseMapper.toDto(toggledTask, loadAssignees(task));
     }
@@ -253,8 +250,8 @@ public class TaskServiceImpl implements TaskService {
         Task movedTask = taskRepository.save(task);
 
         if (!oldSection.getId().equals(sectionId)) {
-            publishActivity(board.getId(), board.getName(), TASK_MOVED, "Moved task from section %s to %s"
-                    .formatted(oldSection.getName(), movedTask.getSection().getName()));
+            activityService.publish(board, TASK_MOVED,
+                    "Moved task from section %s to %s".formatted(oldSection.getName(), movedTask.getSection().getName()));
         }
 
         return taskPreviewResponseMapper.toDto(movedTask, loadAssignees(task));
@@ -286,8 +283,8 @@ public class TaskServiceImpl implements TaskService {
 
         Board board = label.getBoard();
 
-        publishActivity(board.getId(), board.getName(),
-                TASK_LABEL_ADDED, "Added label %s to task %s".formatted(label.getName(), task.getTitle()));
+        activityService.publish(board, TASK_LABEL_ADDED,
+                "Added label %s to task %s".formatted(label.getName(), task.getTitle()));
 
         return taskPreviewResponseMapper.toDto(task, loadAssignees(task));
     }
@@ -312,8 +309,8 @@ public class TaskServiceImpl implements TaskService {
 
         Board board = label.getBoard();
 
-        publishActivity(board.getId(), board.getName(),
-                TASK_LABEL_DELETED, "Removed label %s from task %s".formatted(label.getName(), task.getTitle()));
+        activityService.publish(board, TASK_LABEL_DELETED,
+                "Removed label %s from task %s".formatted(label.getName(), task.getTitle()));
 
         return taskPreviewResponseMapper.toDto(task, loadAssignees(task));
     }
@@ -373,22 +370,5 @@ public class TaskServiceImpl implements TaskService {
         if (taskIds.isEmpty()) return Map.of();
 
         return userService.getAssigneeByTaskIds(taskIds);
-    }
-
-    private void publishActivity(Long boardId, String boardName, ActivityType type, String description) {
-        CustomUserDetails userDetails = getCurrentUser();
-
-        applicationEventPublisher.publishEvent(new UserActivityInternalEvent(
-                userDetails.id(),
-                userDetails.username(),
-                userDetails.email(),
-                boardId,
-                boardName,
-                type,
-                description));
-    }
-
-    private CustomUserDetails getCurrentUser() {
-        return (CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
     }
 }

@@ -1,7 +1,7 @@
-package com.walking.backend.listener;
+package com.walking.backend.storage.listener;
 
 import com.walking.backend.domain.event.FileCleanupEvent;
-import com.walking.backend.service.FileStorageService;
+import com.walking.backend.storage.service.FileStorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

@@ -1,25 +1,25 @@
 package com.walking.backend.service.impl;
 
 import com.walking.backend.audit.annotation.TrackActivity;
-import com.walking.backend.domain.event.UserActivityInternalEvent;
+import com.walking.backend.audit.service.ActivityService;
 import com.walking.backend.domain.dto.board.BoardRequest;
 import com.walking.backend.domain.dto.board.BoardResponse;
-import com.walking.backend.domain.event.FileCleanupEvent;
 import com.walking.backend.domain.exception.ObjectNotFoundException;
-import com.walking.backend.domain.model.*;
+import com.walking.backend.domain.model.Board;
+import com.walking.backend.domain.model.BoardMember;
+import com.walking.backend.domain.model.BoardRole;
+import com.walking.backend.domain.model.User;
 import com.walking.backend.repository.BoardRepository;
 import com.walking.backend.repository.TaskAttachmentRepository;
-import com.walking.backend.security.principal.CustomUserDetails;
 import com.walking.backend.service.BoardService;
 import com.walking.backend.service.UserService;
 import com.walking.backend.service.mapper.board.BoardRequestMapper;
 import com.walking.backend.service.mapper.board.BoardResponseMapper;
+import com.walking.backend.storage.service.ResourceCleanupService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,9 +34,10 @@ public class BoardServiceImpl implements BoardService {
     private final BoardRepository boardRepository;
     private final TaskAttachmentRepository taskAttachmentRepository;
     private final UserService userService;
+    private final ActivityService activityService;
+    private final ResourceCleanupService resourceCleanupService;
     private final BoardRequestMapper boardRequestMapper;
     private final BoardResponseMapper boardResponseMapper;
-    private final ApplicationEventPublisher applicationEventPublisher;
 
     @Override
     public Page<BoardResponse> getBoards(Long userId, Pageable pageable) {
@@ -78,7 +79,7 @@ public class BoardServiceImpl implements BoardService {
 
         Board updatedBoard = boardRepository.save(board);
 
-        publishActivity(boardId, newName, BOARD_UPDATED, "Renamed board from %s to %s".formatted(oldName, newName));
+        activityService.publish(updatedBoard, BOARD_UPDATED, "Renamed board from %s to %s".formatted(oldName, newName));
 
         return boardResponseMapper.toDto(updatedBoard);
     }
@@ -92,29 +93,9 @@ public class BoardServiceImpl implements BoardService {
 
         List<String> filePaths = taskAttachmentRepository.findAllFilePathByBoardId(boardId);
 
-        String boardName = board.getName();
-
         boardRepository.delete(board);
 
-        publishActivity(boardId, boardName, BOARD_DELETED, "Deleted board %s".formatted(boardName));
-
-        if (!filePaths.isEmpty()) applicationEventPublisher.publishEvent(new FileCleanupEvent(filePaths));
-    }
-
-    private void publishActivity(Long boardId, String boardName, ActivityType type, String description) {
-        CustomUserDetails userDetails = getCurrentUser();
-
-        applicationEventPublisher.publishEvent(new UserActivityInternalEvent(
-                userDetails.id(),
-                userDetails.username(),
-                userDetails.email(),
-                boardId,
-                boardName,
-                type,
-                description));
-    }
-
-    private CustomUserDetails getCurrentUser() {
-        return (CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        activityService.publish(board, BOARD_DELETED, "Deleted board %s".formatted(board.getName()));
+        resourceCleanupService.cleanupFiles(filePaths);
     }
 }

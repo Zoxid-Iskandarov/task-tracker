@@ -1,6 +1,6 @@
 package com.walking.backend.service.impl;
 
-import com.walking.backend.domain.event.UserActivityInternalEvent;
+import com.walking.backend.audit.service.ActivityService;
 import com.walking.backend.domain.dto.attachment.TaskAttachmentDownloadResponse;
 import com.walking.backend.domain.dto.attachment.TaskAttachmentResponse;
 import com.walking.backend.domain.dto.user.UserShortResponse;
@@ -8,20 +8,20 @@ import com.walking.backend.domain.exception.AttachmentLimitExceededException;
 import com.walking.backend.domain.exception.IllegalOperationException;
 import com.walking.backend.domain.exception.InvalidFileException;
 import com.walking.backend.domain.exception.ObjectNotFoundException;
-import com.walking.backend.domain.model.*;
+import com.walking.backend.domain.model.Board;
+import com.walking.backend.domain.model.Task;
+import com.walking.backend.domain.model.TaskAttachment;
+import com.walking.backend.domain.model.User;
 import com.walking.backend.props.AppProperties;
 import com.walking.backend.repository.TaskAttachmentRepository;
 import com.walking.backend.repository.TaskRepository;
-import com.walking.backend.security.principal.CustomUserDetails;
-import com.walking.backend.service.FileStorageService;
 import com.walking.backend.service.TaskAttachmentService;
 import com.walking.backend.service.UserService;
 import com.walking.backend.service.mapper.attachment.TaskAttachmentDownloadResponseMapper;
 import com.walking.backend.service.mapper.attachment.TaskAttachmentResponseMapper;
+import com.walking.backend.storage.service.FileStorageService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -42,10 +42,10 @@ public class TaskAttachmentServiceImpl implements TaskAttachmentService {
     private final TaskRepository taskRepository;
     private final UserService userService;
     private final FileStorageService fileStorageService;
+    private final ActivityService activityService;
     private final TaskAttachmentResponseMapper taskAttachmentResponseMapper;
     private final TaskAttachmentDownloadResponseMapper taskAttachmentDownloadResponseMapper;
     private final AppProperties.Minio minioProperties;
-    private final ApplicationEventPublisher applicationEventPublisher;
 
     @Override
     @PreAuthorize("@resourceAccessService.canViewTask(#taskId, principal.id)")
@@ -108,7 +108,7 @@ public class TaskAttachmentServiceImpl implements TaskAttachmentService {
 
         TaskAttachment savedAttachment = taskAttachmentRepository.save(attachment);
 
-        publishActivity(board.getId(), board.getName(), TASK_ATTACHMENT_ADDED,
+        activityService.publish(board, TASK_ATTACHMENT_ADDED,
                 "Added file %s to task %s".formatted(attachment.getFileName(), task.getTitle()));
 
         return taskAttachmentResponseMapper.toDto(savedAttachment, userService.getUserShortById(userId));
@@ -132,7 +132,7 @@ public class TaskAttachmentServiceImpl implements TaskAttachmentService {
         fileStorageService.deleteAttachment(attachment.getFilePath());
         taskAttachmentRepository.delete(attachment);
 
-        publishActivity(board.getId(), board.getName(), TASK_ATTACHMENT_DELETED,
+        activityService.publish(board, TASK_ATTACHMENT_DELETED,
                 "Deleted file %s from task %s".formatted(attachment.getFileName(), task.getTitle()));
     }
 
@@ -150,22 +150,5 @@ public class TaskAttachmentServiceImpl implements TaskAttachmentService {
             throw new AttachmentLimitExceededException("Task cannot have more than %d attachments"
                     .formatted(minioProperties.getAttachment().getMaxPerTask()));
         }
-    }
-
-    private void publishActivity(Long boardId, String boardName, ActivityType type, String description) {
-        CustomUserDetails userDetails = getCurrentUser();
-
-        applicationEventPublisher.publishEvent(new UserActivityInternalEvent(
-                userDetails.id(),
-                userDetails.username(),
-                userDetails.email(),
-                boardId,
-                boardName,
-                type,
-                description));
-    }
-
-    private CustomUserDetails getCurrentUser() {
-        return (CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
     }
 }
