@@ -6,6 +6,7 @@ import com.walking.backend.domain.dto.task.*;
 import com.walking.backend.domain.dto.user.UserShortResponse;
 import com.walking.backend.domain.exception.*;
 import com.walking.backend.domain.model.*;
+import com.walking.backend.props.AppProperties;
 import com.walking.backend.repository.TaskRepository;
 import com.walking.backend.repository.specification.TaskSpecification;
 import com.walking.backend.service.LabelService;
@@ -17,7 +18,6 @@ import com.walking.backend.service.mapper.task.TaskFullResponseMapper;
 import com.walking.backend.service.mapper.task.TaskPreviewResponseMapper;
 import com.walking.backend.storage.service.ResourceCleanupService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -46,12 +46,7 @@ public class TaskServiceImpl implements TaskService {
     private final CreateTaskRequestMapper createTaskRequestMapper;
     private final TaskFullResponseMapper taskFullResponseMapper;
     private final TaskPreviewResponseMapper taskPreviewResponseMapper;
-
-    @Value("${app.label.max-per-task}")
-    private final int maxLabelsPerTask;
-
-    @Value("${app.task.position-step}")
-    private final double positionStep;
+    private final AppProperties appProperties;
 
     @Override
     @PreAuthorize("@resourceAccessService.canViewSection(#sectionId, principal.id)")
@@ -104,6 +99,8 @@ public class TaskServiceImpl implements TaskService {
         task.setSection(sectionService.getProxySectionById(createTaskRequest.sectionId()));
 
         assignUsersToTask(createTaskRequest.sectionId(), createTaskRequest.assigneeIds(), task);
+
+        double positionStep = appProperties.getTask().getPositionStep();
 
         Double position = Optional.ofNullable(taskRepository.findMaxPositionBySectionId(createTaskRequest.sectionId()))
                 .map(p -> p + positionStep)
@@ -223,7 +220,9 @@ public class TaskServiceImpl implements TaskService {
             throw new TaskMoveException("Cannot move relative to itself");
         }
 
+        double positionStep = appProperties.getTask().getPositionStep();
         double newPosition;
+
         if (prev == null && next == null) {
             newPosition = positionStep;
         } else if (prev == null) {
@@ -266,6 +265,8 @@ public class TaskServiceImpl implements TaskService {
     public TaskPreviewResponse addLabelToTask(Long taskId, Long labelId) {
         Task task = taskRepository.findByIdWithLabels(taskId)
                 .orElseThrow(() -> new ObjectNotFoundException("Task with id %d not found".formatted(taskId)));
+
+        int maxLabelsPerTask = appProperties.getLabel().getMaxPerTask();
 
         if (task.getLabels().size() >= maxLabelsPerTask) {
             throw new LabelLimitExceededException("Task cannot contain more than %d labels".formatted(maxLabelsPerTask));
@@ -318,6 +319,7 @@ public class TaskServiceImpl implements TaskService {
     private void reindexSection(Long sectionId) {
         List<Task> tasks = taskRepository.findAllBySectionIdOrderByPositionAsc(sectionId);
 
+        double positionStep = appProperties.getTask().getPositionStep();
         double position = positionStep;
 
         for (Task task : tasks) {

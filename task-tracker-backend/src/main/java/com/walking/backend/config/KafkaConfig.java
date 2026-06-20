@@ -1,7 +1,7 @@
 package com.walking.backend.config;
 
+import com.walking.backend.props.AppProperties;
 import org.apache.kafka.clients.admin.NewTopic;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.TopicBuilder;
@@ -10,13 +10,15 @@ import org.springframework.kafka.config.TopicBuilder;
 public class KafkaConfig {
 
     @Bean
-    public NewTopic userActivityTopic(
-            @Value("${app.kafka.topics.user-activity}") String topic,
-            @Value("${app.kafka.partitions}") int partitions,
-            @Value("${app.kafka.replicas}") int replicas) {
-        return TopicBuilder.name(topic)
-                .partitions(partitions)
-                .replicas(replicas)
+    public AppProperties.Kafka kafkaProperties(AppProperties appProperties) {
+        return appProperties.getKafka();
+    }
+
+    @Bean
+    public NewTopic userActivityTopic(AppProperties.Kafka kafkaProperties) {
+        return TopicBuilder.name(kafkaProperties.getTopics().getUserActivity())
+                .partitions(kafkaProperties.getPartitions())
+                .replicas(kafkaProperties.getReplicas())
                 .build();
     }
 }

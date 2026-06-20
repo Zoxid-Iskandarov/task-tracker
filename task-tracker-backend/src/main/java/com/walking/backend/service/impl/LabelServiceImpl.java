@@ -10,13 +10,13 @@ import com.walking.backend.domain.exception.LabelLimitExceededException;
 import com.walking.backend.domain.exception.ObjectNotFoundException;
 import com.walking.backend.domain.model.Board;
 import com.walking.backend.domain.model.Label;
+import com.walking.backend.props.AppProperties;
 import com.walking.backend.repository.LabelRepository;
 import com.walking.backend.service.BoardService;
 import com.walking.backend.service.LabelService;
 import com.walking.backend.service.mapper.label.CreateLabelRequestMapper;
 import com.walking.backend.service.mapper.label.LabelResponseMapper;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,9 +35,7 @@ public class LabelServiceImpl implements LabelService {
     private final ActivityService activityService;
     private final CreateLabelRequestMapper createLabelRequestMapper;
     private final LabelResponseMapper labelResponseMapper;
-
-    @Value("${app.label.max-per-board}")
-    private final int maxLabelsPerBoard;
+    private final AppProperties appProperties;
 
     @Override
     @PreAuthorize("@resourceAccessService.canViewBoard(#boardId, principal.id)")
@@ -62,6 +60,8 @@ public class LabelServiceImpl implements LabelService {
     @PreAuthorize("@resourceAccessService.canManageBoard(#createLabelRequest.boardId(), principal.id)")
     @TrackActivity(type = LABEL_CREATED, description = "'Created label ' + #result.name")
     public LabelResponse createLabel(CreateLabelRequest createLabelRequest) {
+        int maxLabelsPerBoard = appProperties.getLabel().getMaxPerBoard();
+
         if (labelRepository.countByBoardId(createLabelRequest.boardId()) >= maxLabelsPerBoard) {
             throw new LabelLimitExceededException("Board cannot contain more than %d labels"
                     .formatted(maxLabelsPerBoard));
