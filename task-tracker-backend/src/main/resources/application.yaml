@@ -42,16 +42,16 @@ spring:
     multipart:
       max-file-size: 25MB
       max-request-size: 25MB
-security:
-  jwt:
-    secret: ${JWT_SECRET}
-    access_token_expiration: 15
-    refresh_token_expiration: 7200
-    redis:
-      refresh_token_prefix: 'token:'
-      user_token_prefix: 'user:'
-    cookie-name: refresh_token
 app:
+  security:
+    jwt:
+      secret: ${JWT_SECRET}
+      access_token_expiration: 15
+      refresh_token_expiration: 7200
+      redis:
+        refresh_token_prefix: 'token:'
+        user_token_prefix: 'user:'
+      cookie-name: refresh_token
   label:
     max-per-board: 100
     max-per-task: 15

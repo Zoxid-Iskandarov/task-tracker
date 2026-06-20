@@ -12,6 +12,27 @@ public class AppProperties {
     private Task task = new Task();
     private Kafka kafka = new Kafka();
     private Minio minio = new Minio();
+    private Security security = new Security();
+
+    @Data
+    public static class Security {
+        private Jwt jwt = new Jwt();
+
+        @Data
+        public static class Jwt {
+            private String secret;
+            private long accessTokenExpiration;
+            private long refreshTokenExpiration;
+            private String cookieName;
+            private Redis redis = new Redis();
+
+            @Data
+            public static class Redis {
+                private String refreshTokenPrefix;
+                private String userTokenPrefix;
+            }
+        }
+    }
 
     @Data
     public static class Label {

@@ -2,9 +2,9 @@ package com.walking.backend.security.authentication;
 
 import com.walking.backend.domain.dto.auth.AuthResponse;
 import com.walking.backend.domain.exception.AuthException;
+import com.walking.backend.props.AppProperties;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.server.Cookie;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpHeaders;
@@ -19,18 +19,7 @@ import java.util.concurrent.TimeUnit;
 public class TokenService {
     private final JwtService jwtService;
     private final StringRedisTemplate redisTemplate;
-
-    @Value("${security.jwt.redis.refresh_token_prefix}")
-    private final String refreshTokenPrefix;
-
-    @Value("${security.jwt.redis.user_token_prefix}")
-    private final String userTokenPrefix;
-
-    @Value("${security.jwt.refresh_token_expiration}")
-    private final long refreshTokenExpiration;
-
-    @Value("${security.jwt.cookie-name}")
-    private String cookieName;
+    private final AppProperties appProperties;
 
     public AuthResponse generateTokens(String username, Long userId, HttpServletResponse response) {
         String accessToken = jwtService.generateAccessToken(username);
@@ -38,11 +27,11 @@ public class TokenService {
 
         saveRefreshToken(refreshToken, userId);
 
-        ResponseCookie refreshTokenCookie = ResponseCookie.from(cookieName, refreshToken)
+        ResponseCookie refreshTokenCookie = ResponseCookie.from(appProperties.getSecurity().getJwt().getCookieName(), refreshToken)
                 .httpOnly(true)
                 .secure(false)
                 .path("/auth/")
-                .maxAge(Duration.ofMinutes(refreshTokenExpiration))
+                .maxAge(Duration.ofMinutes(appProperties.getSecurity().getJwt().getRefreshTokenExpiration()))
                 .sameSite(Cookie.SameSite.LAX.attributeValue())
                 .build();
 
@@ -92,6 +81,8 @@ public class TokenService {
     }
 
     private void saveRefreshToken(String token, Long userId) {
+        long refreshTokenExpiration = appProperties.getSecurity().getJwt().getRefreshTokenExpiration();
+
         redisTemplate.opsForValue()
                 .set(getTokenKey(token), userId.toString(), refreshTokenExpiration, TimeUnit.MINUTES);
 
@@ -100,14 +91,14 @@ public class TokenService {
     }
 
     private String getTokenKey(String refreshToken) {
-        return refreshTokenPrefix + refreshToken;
+        return appProperties.getSecurity().getJwt().getRedis().getRefreshTokenPrefix() + refreshToken;
     }
 
     private String getUserTokenKey(Long userId) {
-        return userTokenPrefix + userId;
+        return appProperties.getSecurity().getJwt().getRedis().getUserTokenPrefix() + userId;
     }
 
     private String getUserTokenKey(String userId) {
-        return userTokenPrefix + userId;
+        return appProperties.getSecurity().getJwt().getRedis().getUserTokenPrefix() + userId;
     }
 }

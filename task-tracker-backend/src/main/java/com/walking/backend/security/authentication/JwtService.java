@@ -1,6 +1,7 @@
 package com.walking.backend.security.authentication;
 
 import com.walking.backend.domain.exception.AuthException;
+import com.walking.backend.props.AppProperties;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
@@ -8,7 +9,6 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
@@ -21,21 +21,14 @@ import java.util.function.Function;
 @Service
 @RequiredArgsConstructor
 public class JwtService {
-    @Value("${security.jwt.secret}")
-    private final String secret;
-
-    @Value("${security.jwt.access_token_expiration}")
-    private final long accessTokenExpiration;
-
-    @Value("${security.jwt.refresh_token_expiration}")
-    private final long refreshTokenExpiration;
+    private final AppProperties appProperties;
 
     public String generateAccessToken(String username) {
-        return generateToken(username, accessTokenExpiration);
+        return generateToken(username, appProperties.getSecurity().getJwt().getAccessTokenExpiration());
     }
 
     public String generateRefreshToken(String username) {
-        return generateToken(username, refreshTokenExpiration);
+        return generateToken(username, appProperties.getSecurity().getJwt().getRefreshTokenExpiration());
     }
 
     public String extractUsername(String token) {
@@ -74,6 +67,6 @@ public class JwtService {
     }
 
     private SecretKey getSignKey() {
-        return Keys.hmacShaKeyFor(Decoders.BASE64URL.decode(secret));
+        return Keys.hmacShaKeyFor(Decoders.BASE64URL.decode(appProperties.getSecurity().getJwt().getSecret()));
     }
 }

@@ -1,5 +1,6 @@
 package com.walking.backend.security.handler;
 
+import com.walking.backend.props.AppProperties;
 import com.walking.backend.security.authentication.TokenService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -7,7 +8,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
@@ -18,14 +18,13 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class CustomLogoutHandler implements LogoutHandler {
     private final TokenService tokenService;
-
-    @Value("${security.jwt.cookie-name}")
-    private final String cookieName;
+    private final AppProperties appProperties;
 
     @Override
     public void logout(HttpServletRequest request,
                        @NonNull HttpServletResponse response,
                        @Nullable Authentication authentication) {
+        String cookieName = appProperties.getSecurity().getJwt().getCookieName();
         String refreshToken = null;
 
         if (request.getCookies() != null) {

@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 
 @Component
 public class CustomAccessDeniedHandler implements AccessDeniedHandler {
+
     @Override
     public void handle(@NonNull HttpServletRequest request,
                        HttpServletResponse response,
