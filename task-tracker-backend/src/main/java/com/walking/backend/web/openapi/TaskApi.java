@@ -2,6 +2,8 @@ package com.walking.backend.web.openapi;
 
 import com.walking.backend.domain.dto.attachment.TaskAttachmentDownloadResponse;
 import com.walking.backend.domain.dto.attachment.TaskAttachmentResponse;
+import com.walking.backend.domain.dto.comment.CommentRequest;
+import com.walking.backend.domain.dto.comment.CommentResponse;
 import com.walking.backend.domain.dto.task.*;
 import com.walking.backend.security.principal.CustomUserDetails;
 import io.swagger.v3.oas.annotations.Operation;
@@ -14,6 +16,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.multipart.MultipartFile;
@@ -190,5 +195,65 @@ public interface TaskApi {
     ResponseEntity<Void> deleteAttachment(
             @Parameter(description = "ID of the task") Long taskId,
             @Parameter(description = "ID of the attachment") Long attachmentId
+    );
+
+    @Operation(
+            summary = "Get all comments for a task",
+            description = "Retrieves a paginated list of comments associated with the specified task, sorted by creation date."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Comments retrieved successfully",
+                    content = @Content(schema = @Schema(implementation = Page.class))),
+            @ApiResponse(responseCode = "403", description = "Forbidden - No access to this task"),
+            @ApiResponse(responseCode = "404", description = "Task not found")
+    })
+    Page<CommentResponse> getComments(
+            @Parameter(description = "ID of the task") Long taskId,
+            @ParameterObject Pageable pageable
+    );
+
+    @Operation(
+            summary = "Create a comment",
+            description = "Adds a new comment to the task on behalf of the authenticated user."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Comment created successfully",
+                    content = @Content(schema = @Schema(implementation = CommentResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Forbidden - No access to this task")
+    })
+    CommentResponse createComment(
+            @Parameter(description = "ID of the task") Long taskId,
+            @RequestBody @Validated CommentRequest commentRequest,
+            @Parameter(hidden = true) CustomUserDetails userDetails
+    );
+
+    @Operation(
+            summary = "Update a comment",
+            description = "Updates the content of an existing comment. Only the author can perform this action."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Comment updated successfully",
+                    content = @Content(schema = @Schema(implementation = CommentResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Not the author of the comment"),
+            @ApiResponse(responseCode = "404", description = "Comment or task not found")
+    })
+    CommentResponse updateComment(
+            @Parameter(description = "ID of the task") Long taskId,
+            @Parameter(description = "ID of the comment") Long commentId,
+            @RequestBody @Validated CommentRequest commentRequest
+    );
+
+    @Operation(
+            summary = "Delete a comment",
+            description = "Permanently removes a comment from the task. Allowed for the author or task manager."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Comment successfully deleted"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Insufficient permissions"),
+            @ApiResponse(responseCode = "404", description = "Comment or task not found")
+    })
+    ResponseEntity<Void> deleteComment(
+            @Parameter(description = "ID of the task") Long taskId,
+            @Parameter(description = "ID of the comment") Long commentId
     );
 }
