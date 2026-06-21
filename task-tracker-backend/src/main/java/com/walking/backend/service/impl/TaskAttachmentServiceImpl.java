@@ -11,7 +11,6 @@ import com.walking.backend.domain.exception.ObjectNotFoundException;
 import com.walking.backend.domain.model.Board;
 import com.walking.backend.domain.model.Task;
 import com.walking.backend.domain.model.TaskAttachment;
-import com.walking.backend.domain.model.User;
 import com.walking.backend.props.AppProperties;
 import com.walking.backend.repository.TaskAttachmentRepository;
 import com.walking.backend.repository.TaskRepository;
@@ -20,6 +19,7 @@ import com.walking.backend.service.UserService;
 import com.walking.backend.service.mapper.attachment.TaskAttachmentDownloadResponseMapper;
 import com.walking.backend.service.mapper.attachment.TaskAttachmentResponseMapper;
 import com.walking.backend.storage.service.FileStorageService;
+import com.walking.backend.util.UserMapLoader;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -28,8 +28,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import static com.walking.backend.domain.model.ActivityType.TASK_ATTACHMENT_ADDED;
 import static com.walking.backend.domain.model.ActivityType.TASK_ATTACHMENT_DELETED;
@@ -52,19 +50,17 @@ public class TaskAttachmentServiceImpl implements TaskAttachmentService {
     public List<TaskAttachmentResponse> getAttachments(Long taskId) {
         List<TaskAttachment> attachments = taskAttachmentRepository.findAllByTaskId(taskId);
 
-        Set<Long> userIds = attachments.stream()
-                .map(TaskAttachment::getUploadedBy)
-                .map(User::getId)
-                .collect(Collectors.toSet());
-
-        Map<Long, UserShortResponse> users = userService.getUserShortsByIds(userIds)
-                .stream()
-                .collect(Collectors.toMap(
-                        UserShortResponse::id,
-                        userShortResponse -> userShortResponse));
+        Map<Long, UserShortResponse> users = UserMapLoader
+                .loadUserMap(attachments, TaskAttachment::getUploadedBy, userService);
 
         return attachments.stream()
-                .map(a -> taskAttachmentResponseMapper.toDto(a, users.get(a.getUploadedBy().getId())))
+                .map(attachment -> {
+                    UserShortResponse uploader = attachment.getUploadedBy() != null
+                            ? users.get(attachment.getUploadedBy().getId())
+                            : null;
+
+                    return taskAttachmentResponseMapper.toDto(attachment, uploader);
+                })
                 .toList();
     }
 
@@ -93,7 +89,6 @@ public class TaskAttachmentServiceImpl implements TaskAttachmentService {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ObjectNotFoundException("Task with id %d not found".formatted(taskId)));
         Board board = task.getSection().getBoard();
-
 
         String path = fileStorageService.uploadAttachment(taskId, file);
 

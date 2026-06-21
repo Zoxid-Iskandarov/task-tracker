@@ -5,13 +5,13 @@ import com.walking.backend.domain.dto.comment.CommentResponse;
 import com.walking.backend.domain.dto.user.UserShortResponse;
 import com.walking.backend.domain.exception.ObjectNotFoundException;
 import com.walking.backend.domain.model.Comment;
-import com.walking.backend.domain.model.User;
 import com.walking.backend.repository.CommentRepository;
 import com.walking.backend.service.CommentService;
 import com.walking.backend.service.TaskService;
 import com.walking.backend.service.UserService;
 import com.walking.backend.service.mapper.comment.CommentRequestMapper;
 import com.walking.backend.service.mapper.comment.CommentResponseMapper;
+import com.walking.backend.util.UserMapLoader;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -20,9 +20,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @Service
 @Transactional(readOnly = true)
@@ -39,17 +36,8 @@ public class CommentServiceImpl implements CommentService {
     public Page<CommentResponse> getComments(Long taskId, Pageable pageable) {
         Page<Comment> comments = commentRepository.findAllByTaskId(taskId, pageable);
 
-        Set<Long> userIds = comments.stream()
-                .map(Comment::getAuthor)
-                .filter(Objects::nonNull)
-                .map(User::getId)
-                .collect(Collectors.toSet());
-
-        Map<Long, UserShortResponse> users = userService.getUserShortsByIds(userIds)
-                .stream()
-                .collect(Collectors.toMap(
-                        UserShortResponse::id,
-                        userShortResponse -> userShortResponse));
+        Map<Long, UserShortResponse> users = UserMapLoader
+                .loadUserMap(comments.getContent(), Comment::getAuthor, userService);
 
         return comments.map(comment -> {
             UserShortResponse author = comment.getAuthor() != null
