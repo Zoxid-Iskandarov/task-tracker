@@ -90,6 +90,11 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
+    public Task getProxyTaskById(Long taskId) {
+        return taskRepository.getReferenceById(taskId);
+    }
+
+    @Override
     @Transactional
     @PreAuthorize("@resourceAccessService.canEditSection(#createTaskRequest.sectionId(), principal.id)")
     @TrackActivity(type = TASK_CREATED, description = "'Created task ' + #result.title")
