@@ -17,6 +17,15 @@ public class ResourceAccessService {
     private final SectionRepository sectionRepository;
     private final TaskRepository taskRepository;
     private final LabelRepository labelRepository;
+    private final CommentRepository commentRepository;
+
+    public boolean canManageComment(Long commentId, Long taskId, Long userId) {
+        return canEditComment(commentId, userId) || canEditTask(taskId, userId);
+    }
+
+    public boolean canEditComment(Long commentId, Long userId) {
+        return commentRepository.existsByIdAndAuthorId(commentId, userId);
+    }
 
     public boolean canUseLabel(Long labelId, Long userId) {
         return labelRepository.existsByLabelIdAndUserIdAndRoles(labelId, userId, List.of(OWNER, EDITOR));
@@ -27,7 +36,7 @@ public class ResourceAccessService {
     }
 
     public boolean canToggleTask(Long taskId, Long userId) {
-        return canEditTask(taskId, userId) || isTaskAssignee(taskId, userId);
+        return isTaskAssignee(taskId, userId) || canEditTask(taskId, userId);
     }
 
     private boolean isTaskAssignee(Long taskId, Long userId) {
