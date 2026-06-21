@@ -2,12 +2,19 @@ package com.walking.backend.web.controller;
 
 import com.walking.backend.domain.dto.attachment.TaskAttachmentDownloadResponse;
 import com.walking.backend.domain.dto.attachment.TaskAttachmentResponse;
+import com.walking.backend.domain.dto.comment.CommentRequest;
+import com.walking.backend.domain.dto.comment.CommentResponse;
 import com.walking.backend.domain.dto.task.*;
 import com.walking.backend.security.principal.CustomUserDetails;
+import com.walking.backend.service.CommentService;
 import com.walking.backend.service.TaskAttachmentService;
 import com.walking.backend.service.TaskService;
 import com.walking.backend.web.openapi.TaskApi;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +31,7 @@ import java.util.List;
 public class TaskController implements TaskApi {
     private final TaskService taskService;
     private final TaskAttachmentService taskAttachmentService;
+    private final CommentService commentService;
 
     @GetMapping("/{taskId}")
     public TaskFullResponse getTaskById(@PathVariable Long taskId) {
@@ -93,6 +101,36 @@ public class TaskController implements TaskApi {
     @DeleteMapping("/{taskId}/attachments/{attachmentId}")
     public ResponseEntity<Void> deleteAttachment(@PathVariable Long taskId, @PathVariable Long attachmentId) {
         taskAttachmentService.deleteAttachment(taskId, attachmentId);
+
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{taskId}/comments")
+    public Page<CommentResponse> getComments(
+            @PathVariable Long taskId,
+            @PageableDefault(size = 20, sort = "created", direction = Sort.Direction.ASC) Pageable pageable) {
+        return commentService.getComments(taskId, pageable);
+    }
+
+    @PostMapping("/{taskId}/comments")
+    public CommentResponse createComment(
+            @PathVariable Long taskId,
+            @RequestBody @Validated CommentRequest commentRequest,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        return commentService.createComment(taskId, userDetails.id(), commentRequest);
+    }
+
+    @PutMapping("/{taskId}/comments/{commentId}")
+    public CommentResponse updateComment(
+            @PathVariable Long taskId,
+            @PathVariable Long commentId,
+            @RequestBody @Validated CommentRequest commentRequest) {
+        return commentService.updateComment(taskId, commentId, commentRequest);
+    }
+
+    @DeleteMapping("/{taskId}/comments/{commentId}")
+    public ResponseEntity<Void> deleteComment(@PathVariable Long taskId, @PathVariable Long commentId) {
+        commentService.deleteComment(taskId, commentId);
 
         return ResponseEntity.noContent().build();
     }
