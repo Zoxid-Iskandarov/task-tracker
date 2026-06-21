@@ -1,6 +1,7 @@
 package com.walking.backend.service;
 
 import com.walking.backend.domain.dto.task.*;
+import com.walking.backend.domain.model.Task;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -11,6 +12,8 @@ public interface TaskService {
     Page<TaskPreviewResponse> searchTasks(Long boardId, TaskFilter taskFilter, Pageable pageable);
 
     TaskFullResponse getTaskById(Long taskId);
+
+    Task getProxyTaskById(Long taskId);
 
     TaskFullResponse createTask(CreateTaskRequest createTaskRequest);
 
