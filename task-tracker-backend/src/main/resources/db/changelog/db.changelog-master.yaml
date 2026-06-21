@@ -19,3 +19,5 @@ databaseChangeLog:
       file: db/changelog/V1_0_9__create_task_assignee.sql
   - include:
       file: db/changelog/V1_0_10__create_task_attachment.sql
+  - include:
+      file: db/changelog/V1_0_11__create_task_comment.sql
