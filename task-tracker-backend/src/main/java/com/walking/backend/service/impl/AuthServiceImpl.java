@@ -7,6 +7,7 @@ import com.walking.backend.domain.dto.kafka.MessageDto;
 import com.walking.backend.domain.dto.user.UserResponse;
 import com.walking.backend.domain.exception.AuthException;
 import com.walking.backend.security.authentication.TokenService;
+import com.walking.backend.security.principal.CustomUserDetails;
 import com.walking.backend.service.AuthService;
 import com.walking.backend.service.KafkaProducerService;
 import com.walking.backend.service.UserService;
@@ -14,6 +15,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,17 +40,19 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthResponse signIn(SignInRequest signInRequest, HttpServletResponse response) {
+        Authentication authenticate;
+
         try {
-            authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
+            authenticate = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
                     signInRequest.username(), signInRequest.password()));
         } catch (AuthenticationException e) {
             throw new AuthException("Invalid username or password");
         }
 
-        UserResponse userResponse = userService.getUserByUsername(signInRequest.username());
-        tokenService.deleteRefreshToken(userResponse.id());
+        CustomUserDetails userDetails = (CustomUserDetails) authenticate.getPrincipal();
+        tokenService.deleteRefreshToken(userDetails.id());
 
-        return tokenService.generateTokens(userResponse.username(), userResponse.id(), response);
+        return tokenService.generateTokens(userDetails.username(), userDetails.id(), response);
     }
 
     @Override

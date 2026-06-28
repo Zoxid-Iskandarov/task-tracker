@@ -54,13 +54,6 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserResponse getUserByUsername(String username) {
-        return userRepository.findByUsername(username)
-                .map(userResponseMapper::toDto)
-                .orElseThrow(() -> new ObjectNotFoundException("User %s not found".formatted(username)));
-    }
-
-    @Override
     public User getProxyUserById(Long userId) {
         return userRepository.getReferenceById(userId);
     }

@@ -17,8 +17,6 @@ public interface UserService {
 
     UserProfileResponse getCurrentUserProfileById(Long userId);
 
-    UserResponse getUserByUsername(String username);
-
     User getProxyUserById(Long userId);
 
     User getUserById(Long userId);
