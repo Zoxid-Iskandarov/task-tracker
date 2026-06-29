@@ -8,6 +8,7 @@ import com.walking.backend.domain.exception.ObjectNotFoundException;
 import com.walking.backend.domain.model.User;
 import com.walking.backend.domain.model.UserProfile;
 import com.walking.backend.domain.projection.TaskAssigneeProjection;
+import com.walking.backend.props.CacheNames;
 import com.walking.backend.repository.UserProfileRepository;
 import com.walking.backend.repository.UserRepository;
 import com.walking.backend.service.UserService;
@@ -16,6 +17,9 @@ import com.walking.backend.service.mapper.user.UserProfileResponseMapper;
 import com.walking.backend.service.mapper.user.UserResponseMapper;
 import com.walking.backend.storage.service.FileStorageService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -48,6 +52,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Cacheable(value = CacheNames.USER_PROFILE, key = "#userId")
     public UserProfileResponse getCurrentUserProfileById(Long userId) {
         return userProfileRepository.findUserProfileByUserId(userId)
                 .orElseThrow(() -> new ObjectNotFoundException("User with id %d not found"));
@@ -75,6 +80,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Cacheable(value = CacheNames.USER_SHORT_PROFILE, key = "#userId")
     public UserShortResponse getUserShortById(Long userId) {
         return userProfileRepository.findUserShortById(userId);
     }
@@ -84,11 +90,11 @@ public class UserServiceImpl implements UserService {
         return userProfileRepository.findAssigneeProjectionByTaskIds(taskIds)
                 .stream()
                 .collect(Collectors.groupingBy(
-                        TaskAssigneeProjection::taskId,
-                        Collectors.mapping(
-                                p ->
-                                        new UserShortResponse(p.userId(), p.username(), p.displayName(), p.avatarUrl()),
-                                Collectors.toList())
+                                TaskAssigneeProjection::taskId,
+                                Collectors.mapping(
+                                        p ->
+                                                new UserShortResponse(p.userId(), p.username(), p.displayName(), p.avatarUrl()),
+                                        Collectors.toList())
                         )
                 );
     }
@@ -118,6 +124,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Cacheable(value = CacheNames.USER_PUBLIC_PROFILE, key = "#userId")
     public UserPublicProfileResponse getUserProfileById(Long userId) {
         return userProfileRepository.findUserPublicProfileByUserId(userId)
                 .orElseThrow(() -> new ObjectNotFoundException("User with id %d not found".formatted(userId)));
@@ -125,6 +132,11 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = CacheNames.USER_PROFILE, key = "#userId"),
+            @CacheEvict(value = CacheNames.USER_PUBLIC_PROFILE, key = "#userId"),
+            @CacheEvict(value = CacheNames.USER_SHORT_PROFILE, key = "#userId")
+    })
     public UserProfileResponse updateUserProfile(Long userId, UpdateUserProfileRequest updateUserProfileRequest) {
         return userProfileRepository.findById(userId)
                 .map(profile -> {
@@ -138,6 +150,11 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = CacheNames.USER_PROFILE, key = "#userId"),
+            @CacheEvict(value = CacheNames.USER_PUBLIC_PROFILE, key = "#userId"),
+            @CacheEvict(value = CacheNames.USER_SHORT_PROFILE, key = "#userId")
+    })
     public UserProfileResponse uploadAvatar(Long userId, MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new InvalidFileException("File is empty");
@@ -164,6 +181,11 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = CacheNames.USER_PROFILE, key = "#userId"),
+            @CacheEvict(value = CacheNames.USER_PUBLIC_PROFILE, key = "#userId"),
+            @CacheEvict(value = CacheNames.USER_SHORT_PROFILE, key = "#userId")
+    })
     public void deleteAvatar(Long userId) {
         UserProfile userProfile = userProfileRepository.findById(userId)
                 .orElseThrow(() -> new ObjectNotFoundException("Profile with id %d not found".formatted(userId)));
