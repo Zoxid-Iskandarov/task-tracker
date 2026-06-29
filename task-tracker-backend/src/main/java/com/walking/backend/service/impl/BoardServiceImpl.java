@@ -9,6 +9,7 @@ import com.walking.backend.domain.model.Board;
 import com.walking.backend.domain.model.BoardMember;
 import com.walking.backend.domain.model.BoardRole;
 import com.walking.backend.domain.model.User;
+import com.walking.backend.props.CacheNames;
 import com.walking.backend.repository.BoardRepository;
 import com.walking.backend.repository.TaskAttachmentRepository;
 import com.walking.backend.service.BoardService;
@@ -17,6 +18,8 @@ import com.walking.backend.service.mapper.board.BoardRequestMapper;
 import com.walking.backend.service.mapper.board.BoardResponseMapper;
 import com.walking.backend.storage.service.ResourceCleanupService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -68,6 +71,10 @@ public class BoardServiceImpl implements BoardService {
     @Override
     @Transactional
     @PreAuthorize("@resourceAccessService.canManageBoard(#boardId, principal.id)")
+    @Caching(evict = {
+            @CacheEvict(value = CacheNames.BOARD_INFO, key = "#boardId"),
+            @CacheEvict(value = CacheNames.BOARD_INFO_SECTION, allEntries = true)
+    })
     public BoardResponse updateBoard(BoardRequest boardRequest, Long boardId) {
         Board board = boardRepository.findById(boardId)
                 .orElseThrow(() -> new ObjectNotFoundException("Board with id %d not found".formatted(boardId)));
@@ -87,6 +94,10 @@ public class BoardServiceImpl implements BoardService {
     @Override
     @Transactional
     @PreAuthorize("@resourceAccessService.canManageBoard(#boardId, principal.id)")
+    @Caching(evict = {
+            @CacheEvict(value = CacheNames.BOARD_INFO, key = "#boardId"),
+            @CacheEvict(value = CacheNames.BOARD_INFO_SECTION, allEntries = true)
+    })
     public void deleteBoard(Long boardId) {
         Board board = boardRepository.findById(boardId)
                 .orElseThrow(() -> new ObjectNotFoundException("Board with id %d not found".formatted(boardId)));

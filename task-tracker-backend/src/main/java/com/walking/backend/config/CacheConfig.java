@@ -35,32 +35,28 @@ public class CacheConfig {
     }
 
     @Bean
-    public RedisCacheManagerBuilderCustomizer redisCacheManagerBuilderCustomizer() {
+    public RedisCacheManagerBuilderCustomizer redisCacheManagerBuilderCustomizer(
+            RedisCacheConfiguration cacheConfiguration) {
         return builder -> builder
                 .withCacheConfiguration(
                         CacheNames.USER_PROFILE,
-                        RedisCacheConfiguration.defaultCacheConfig()
-                                .entryTtl(Duration.ofHours(1))
+                        cacheConfiguration.entryTtl(Duration.ofHours(1))
                 )
                 .withCacheConfiguration(
                         CacheNames.USER_PUBLIC_PROFILE,
-                        RedisCacheConfiguration.defaultCacheConfig()
-                                .entryTtl(Duration.ofHours(1))
+                        cacheConfiguration.entryTtl(Duration.ofHours(1))
                 )
                 .withCacheConfiguration(
                         CacheNames.USER_SHORT_PROFILE,
-                        RedisCacheConfiguration.defaultCacheConfig()
-                                .entryTtl(Duration.ofHours(1))
+                        cacheConfiguration.entryTtl(Duration.ofHours(1))
                 )
                 .withCacheConfiguration(
                         CacheNames.BOARD_INFO,
-                        RedisCacheConfiguration.defaultCacheConfig()
-                                .entryTtl(Duration.ofMinutes(30))
+                        cacheConfiguration.entryTtl(Duration.ofMinutes(30))
                 )
                 .withCacheConfiguration(
                         CacheNames.BOARD_INFO_SECTION,
-                        RedisCacheConfiguration.defaultCacheConfig()
-                                .entryTtl(Duration.ofMinutes(30))
+                        cacheConfiguration.entryTtl(Duration.ofMinutes(30))
                 );
     }
 }
