@@ -6,13 +6,14 @@ import com.walking.backend.domain.dto.auth.SignUpRequest;
 import com.walking.backend.domain.dto.kafka.MessageDto;
 import com.walking.backend.domain.dto.user.UserResponse;
 import com.walking.backend.domain.exception.AuthException;
-import com.walking.backend.security.JwtService;
-import com.walking.backend.security.TokenService;
+import com.walking.backend.security.authentication.TokenService;
+import com.walking.backend.security.principal.CustomUserDetails;
 import com.walking.backend.service.impl.AuthServiceImpl;
-import jakarta.servlet.http.HttpServletRequest;
-import org.junit.jupiter.api.BeforeEach;
+import jakarta.servlet.http.HttpServletResponse;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -20,10 +21,10 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -33,8 +34,6 @@ public class AuthServiceTest {
     private static final String EMAIL = "test@gmail.com";
     private static final String PASSWORD = "Password123";
     private static final String ACCESS_TOKEN = "access_1aBcDeFgHiJkLmNoPqRsTuVwXyZ_abcdef1234567890";
-    private static final String REFRESH_TOKEN = "refresh_1aBcDeFgHiJkLmNoPqRsTuVwXyZ_abcdef1234567890";
-    private static final String REFRESH_HEADER = "X-Refresh-Token";
 
     @Mock
     private UserService userService;
@@ -43,7 +42,7 @@ public class AuthServiceTest {
     private TokenService tokenService;
 
     @Mock
-    private JwtService jwtService;
+    private HttpServletResponse response;
 
     @Mock
     private KafkaProducerService kafkaProducerService;
@@ -51,140 +50,139 @@ public class AuthServiceTest {
     @Mock
     private AuthenticationManager authenticationManager;
 
-    @Mock
-    private HttpServletRequest request;
-
     @InjectMocks
     private AuthServiceImpl authService;
 
-    @BeforeEach
-    void setUp() {
-        ReflectionTestUtils.setField(authService, "refreshHeader", REFRESH_HEADER);
+    @Test
+    void singUp_whenValidRequestData_shouldReturnAuthResponse() {
+        SignUpRequest signUpRequest = getSignUpRequest();
+        UserResponse userResponse = getUserResponse();
+        AuthResponse authResponse = getAuthResponse();
+
+        doReturn(userResponse).when(userService).createUser(signUpRequest);
+        doNothing().when(kafkaProducerService).sendMessageDto(anyLong(), any(MessageDto.class));
+        doReturn(authResponse).when(tokenService).generateTokens(userResponse.username(), userResponse.id(), response);
+
+        AuthResponse actual = authService.signUp(signUpRequest, response);
+
+        Assertions.assertEquals(authResponse, actual);
+        Assertions.assertEquals(authResponse.accessToken(), actual.accessToken());
+
+        verify(userService).createUser(signUpRequest);
+        verify(kafkaProducerService).sendMessageDto(anyLong(), any(MessageDto.class));
+        verify(tokenService).generateTokens(userResponse.username(), userResponse.id(), response);
     }
 
     @Test
-    void signUp_whenValidRequestData_returnAuthResponse() {
+    void signUp_whenUserServiceThrowException_shouldNotCallKafkaAndTokenService() {
+        doThrow(RuntimeException.class).when(userService).createUser(any(SignUpRequest.class));
+
+        assertThrows(RuntimeException.class, () -> authService.signUp(getSignUpRequest(), response));
+
+        verify(userService).createUser(any(SignUpRequest.class));
+        verify(kafkaProducerService, never()).sendMessageDto(anyLong(), any(MessageDto.class));
+        verify(tokenService, never()).generateTokens(anyString(), anyLong(), any());
+    }
+
+    @Test
+    void signUp_whenKafkaProducerServiceThrowException_shouldNotCallTokenService() {
         SignUpRequest signUpRequest = getSignUpRequest();
         UserResponse userResponse = getUserResponse();
 
         doReturn(userResponse).when(userService).createUser(signUpRequest);
-        doReturn(ACCESS_TOKEN).when(jwtService).generateAccessToken(userResponse.username());
-        doReturn(REFRESH_TOKEN).when(jwtService).generateRefreshToken(userResponse.username());
+        doThrow(RuntimeException.class).when(kafkaProducerService).sendMessageDto(anyLong(), any(MessageDto.class));
 
-        AuthResponse actual = authService.signUp(signUpRequest);
-
-        assertEquals(ACCESS_TOKEN, actual.accessToken());
-        assertEquals(REFRESH_TOKEN, actual.refreshToken());
+        assertThrows(RuntimeException.class, () -> authService.signUp(signUpRequest, response));
 
         verify(userService).createUser(signUpRequest);
-        verify(kafkaProducerService).sendMessageDto(anyString(), any(MessageDto.class));
-        verify(jwtService).generateAccessToken(userResponse.username());
-        verify(jwtService).generateRefreshToken(userResponse.username());
-        verify(tokenService).saveAccessToken(ACCESS_TOKEN, userResponse.id());
-        verify(tokenService).saveRefreshToken(REFRESH_TOKEN, userResponse.id());
-
-        verifyNoMoreInteractions(userService, kafkaProducerService, jwtService, tokenService);
+        verify(kafkaProducerService).sendMessageDto(anyLong(), any(MessageDto.class));
+        verify(tokenService, never()).generateTokens(anyString(), anyLong(), any());
     }
 
     @Test
-    void signIn_whenValidCredentials_returnAuthResponse() {
-        SignInRequest signInRequest = getSignInRequest();
+    void signUp_whenValidRequestData_shouldSendMessageWithCorrectUserData() {
+        SignUpRequest signUpRequest = getSignUpRequest();
         UserResponse userResponse = getUserResponse();
+        AuthResponse authResponse = getAuthResponse();
 
-        doReturn(mock(Authentication.class)).when(authenticationManager)
-                .authenticate(any(UsernamePasswordAuthenticationToken.class));
-        doReturn(userResponse).when(userService).getUserByUsername(signInRequest.username());
-        doReturn(ACCESS_TOKEN).when(jwtService).generateAccessToken(userResponse.username());
-        doReturn(REFRESH_TOKEN).when(jwtService).generateRefreshToken(userResponse.username());
+        doReturn(userResponse).when(userService).createUser(signUpRequest);
+        doReturn(authResponse).when(tokenService).generateTokens(userResponse.username(), userResponse.id(), response);
 
-        AuthResponse actual = authService.signIn(signInRequest);
+        authService.signUp(signUpRequest, response);
 
-        assertEquals(ACCESS_TOKEN, actual.accessToken());
-        assertEquals(REFRESH_TOKEN, actual.refreshToken());
+        ArgumentCaptor<MessageDto> captor = ArgumentCaptor.forClass(MessageDto.class);
+        verify(kafkaProducerService).sendMessageDto(eq(userResponse.id()), captor.capture());
+
+        MessageDto messageDto = captor.getValue();
+
+        assertEquals(userResponse.email(), messageDto.getEmail());
+    }
+
+    @Test
+    void signIn_whenValidRequestData_shouldReturnAuthResponse() {
+        Authentication authentication = mock(Authentication.class);
+
+        SignInRequest signInRequest = getSignInRequest();
+        CustomUserDetails customUserDetails = new CustomUserDetails(ID, USERNAME, EMAIL, "");
+        AuthResponse authResponse = getAuthResponse();
+
+        doReturn(authentication).when(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
+        doReturn(customUserDetails).when(authentication).getPrincipal();
+        doNothing().when(tokenService).deleteRefreshToken(anyLong());
+        doReturn(authResponse).when(tokenService)
+                .generateTokens(customUserDetails.username(), customUserDetails.id(), response);
+
+        AuthResponse actual = authService.signIn(signInRequest, response);
+
+        Assertions.assertEquals(authResponse, actual);
+        Assertions.assertEquals(authResponse.accessToken(), actual.accessToken());
 
         verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
-        verify(userService).getUserByUsername(signInRequest.username());
-        verify(tokenService).deleteAllTokensOfUser(userResponse.id());
-        verify(jwtService).generateAccessToken(userResponse.username());
-        verify(jwtService).generateRefreshToken(userResponse.username());
-        verify(tokenService).saveAccessToken(ACCESS_TOKEN, userResponse.id());
-        verify(tokenService).saveRefreshToken(REFRESH_TOKEN, userResponse.id());
-
-        verifyNoMoreInteractions(authenticationManager, userService, tokenService, jwtService);
+        verify(authentication).getPrincipal();
+        verify(tokenService).deleteRefreshToken(anyLong());
+        verify(tokenService).generateTokens(customUserDetails.username(), customUserDetails.id(), response);
     }
 
     @Test
-    void signIn_whenInvalidCredentials_throwAuthException() {
-        SignInRequest signInRequest = new SignInRequest(USERNAME, PASSWORD);
+    void signIn_whenInvalidRequestData_shouldThrowAuthException() {
+        SignInRequest signInRequest = getSignInRequest();
 
         doThrow(BadCredentialsException.class).when(authenticationManager)
                 .authenticate(any(UsernamePasswordAuthenticationToken.class));
 
-        assertThrows(AuthException.class, () -> authService.signIn(signInRequest));
+        assertThrows(AuthException.class, () -> authService.signIn(signInRequest, response));
 
-        verifyNoMoreInteractions(authenticationManager);
-        verifyNoInteractions(userService, tokenService, jwtService);
+        verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
+        verify(tokenService, never()).deleteRefreshToken(anyLong());
+        verify(tokenService, never()).generateTokens(anyString(), anyLong(), any(HttpServletResponse.class));
     }
 
     @Test
-    void refreshTokens_whenValidRefreshToken_returnAuthResponse() {
-        UserResponse userResponse = getUserResponse();
+    void refreshToken_whenValidRequestData_shouldReturnAuthResponse() {
+        String refreshToken = "refresh_1aBcDeFgHiJkLmNoPqRsTuVwXyZ_abcdef1234567890";
+        AuthResponse authResponse = getAuthResponse();
 
-        doReturn(REFRESH_TOKEN).when(request).getHeader(REFRESH_HEADER);
-        doReturn(USERNAME).when(jwtService).extractUsername(REFRESH_TOKEN);
-        doReturn(userResponse).when(userService).getUserByUsername(USERNAME);
-        doReturn(true).when(jwtService)
-                .isValidRefreshToken(REFRESH_TOKEN, userResponse.username(), userResponse.id());
-        doReturn(ACCESS_TOKEN).when(jwtService).generateAccessToken(userResponse.username());
-        doReturn(REFRESH_TOKEN).when(jwtService).generateRefreshToken(userResponse.username());
+        doReturn(authResponse).when(tokenService).validateAndRefreshToken(refreshToken, response);
 
-        AuthResponse actual = authService.refreshTokens(request);
+        AuthResponse actual = authService.refreshToken(refreshToken, response);
 
-        assertEquals(ACCESS_TOKEN, actual.accessToken());
-        assertEquals(REFRESH_TOKEN, actual.refreshToken());
+        assertEquals(authResponse, actual);
+        assertEquals(authResponse.accessToken(), actual.accessToken());
 
-        verify(request).getHeader(REFRESH_HEADER);
-        verify(jwtService).extractUsername(REFRESH_TOKEN);
-        verify(userService).getUserByUsername(USERNAME);
-        verify(jwtService).isValidRefreshToken(REFRESH_TOKEN, userResponse.username(), userResponse.id());
-        verify(tokenService).deleteAllTokensOfUser(userResponse.id());
-        verify(jwtService).generateAccessToken(userResponse.username());
-        verify(jwtService).generateRefreshToken(userResponse.username());
-        verify(tokenService).saveAccessToken(ACCESS_TOKEN, userResponse.id());
-        verify(tokenService).saveRefreshToken(REFRESH_TOKEN, userResponse.id());
-
-        verifyNoMoreInteractions(request, jwtService, userService, tokenService);
+        verify(tokenService).validateAndRefreshToken(refreshToken, response);
     }
 
     @Test
-    void refreshTokens_whenRefreshTokenMissing_throwAuthException() {
-        doReturn(null).when(request).getHeader(REFRESH_HEADER);
+    void refreshToken_whenTokenServiceThrowException_shouldAuthException() {
+        doThrow(RuntimeException.class).when(tokenService).validateAndRefreshToken(anyString(), any());
 
-        assertThrows(AuthException.class, () -> authService.refreshTokens(request));
+        assertThrows(RuntimeException.class, () -> authService.refreshToken(anyString(), any()));
 
-        verify(request).getHeader(REFRESH_HEADER);
-        verifyNoInteractions(jwtService, userService, tokenService);
+        verify(tokenService).validateAndRefreshToken(anyString(), any());
     }
 
-    @Test
-    void refreshTokens_whenRefreshTokenInvalid_throwAuthException() {
-        UserResponse userResponse = getUserResponse();
-
-        doReturn(REFRESH_TOKEN).when(request).getHeader(REFRESH_HEADER);
-        doReturn(USERNAME).when(jwtService).extractUsername(REFRESH_TOKEN);
-        doReturn(userResponse).when(userService).getUserByUsername(USERNAME);
-        doReturn(false).when(jwtService)
-                .isValidRefreshToken(REFRESH_TOKEN, userResponse.username(), userResponse.id());
-
-        assertThrows(AuthException.class, () -> authService.refreshTokens(request));
-
-        verify(request).getHeader(REFRESH_HEADER);
-        verify(jwtService).extractUsername(REFRESH_TOKEN);
-        verify(userService).getUserByUsername(USERNAME);
-        verify(jwtService).isValidRefreshToken(REFRESH_TOKEN, userResponse.username(), userResponse.id());
-        verify(jwtService, never()).generateAccessToken(USERNAME);
-        verify(jwtService, never()).generateRefreshToken(USERNAME);
-        verifyNoInteractions(tokenService);
+    private AuthResponse getAuthResponse() {
+        return new AuthResponse(ACCESS_TOKEN);
     }
 
     private SignUpRequest getSignUpRequest() {
