@@ -55,7 +55,7 @@ public class UserServiceImpl implements UserService {
     @Cacheable(value = CacheNames.USER_PROFILE, key = "#userId")
     public UserProfileResponse getCurrentUserProfileById(Long userId) {
         return userProfileRepository.findUserProfileByUserId(userId)
-                .orElseThrow(() -> new ObjectNotFoundException("User with id %d not found"));
+                .orElseThrow(() -> new ObjectNotFoundException("User with id %d not found".formatted(userId)));
     }
 
     @Override
