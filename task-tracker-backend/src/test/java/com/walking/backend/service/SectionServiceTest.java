@@ -128,7 +128,7 @@ class SectionServiceTest {
     }
 
     @Test
-    void updateSection_whenSectionByNameAlreadyExistsInBoard_shouldThrowDuplicateException() {
+    void updateSection_whenSectionNotFound_shouldThrowObjectNotFoundException() {
         var updateSectionRequest = new UpdateSectionRequest(NAME);
 
         doReturn(Optional.empty()).when(sectionRepository).findById(SECTION_ID);
@@ -142,7 +142,7 @@ class SectionServiceTest {
     }
 
     @Test
-    void updateSection_whenAlreadyExistsSectionByNameInBoard_shouldThrowDuplicateException() {
+    void updateSection_whenSectionByNameAlreadyExistsInBoard_shouldThrowDuplicateException() {
         var updateSectionRequest = new UpdateSectionRequest(NAME);
         var section = buildSection(SECTION_ID, NAME);
 
