@@ -69,16 +69,9 @@ public class CommentServiceImpl implements CommentService {
                 .orElseThrow(() -> new ObjectNotFoundException("Comment with id %d not found".formatted(commentId)));
 
         comment.setContent(commentRequest.content());
-
         Comment updatedComment = commentRepository.save(comment);
 
-        Long authorId = updatedComment.getAuthor() != null
-                ? updatedComment.getAuthor().getId()
-                : null;
-
-        UserShortResponse author = authorId != null
-                ? userService.getUserShortById(authorId)
-                : null;
+        UserShortResponse author = userService.getUserShortById(updatedComment.getAuthor().getId());
 
         return commentResponseMapper.toDto(updatedComment, author);
     }
