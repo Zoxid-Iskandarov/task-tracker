@@ -57,6 +57,7 @@ dependencies {
     testImplementation "org.testcontainers:postgresql:$postgresqlTestcontainersVersion"
     testImplementation "org.testcontainers:kafka:$kafkaTestcontainersVersion"
     testImplementation "com.redis:testcontainers-redis:$redisTestcontainersVersion"
+    testImplementation "org.testcontainers:testcontainers-minio:$minioTestcontainersVersion"
 
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
