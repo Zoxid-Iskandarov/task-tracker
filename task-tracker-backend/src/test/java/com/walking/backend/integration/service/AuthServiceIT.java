@@ -6,116 +6,171 @@ import com.walking.backend.domain.dto.auth.SignUpRequest;
 import com.walking.backend.domain.dto.kafka.MessageDto;
 import com.walking.backend.domain.exception.AuthException;
 import com.walking.backend.domain.exception.DuplicateException;
+import com.walking.backend.domain.model.User;
+import com.walking.backend.domain.model.UserProfile;
 import com.walking.backend.integration.IntegrationTestBase;
-import com.walking.backend.service.AuthService;
+import com.walking.backend.props.AppProperties;
+import com.walking.backend.repository.UserProfileRepository;
+import com.walking.backend.repository.UserRepository;
+import com.walking.backend.security.authentication.JwtService;
+import com.walking.backend.security.authentication.TokenService;
 import com.walking.backend.service.KafkaProducerService;
+import com.walking.backend.service.impl.AuthServiceImpl;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.mock.web.MockHttpServletResponse;
+import org.testcontainers.shaded.com.google.common.net.HttpHeaders;
 
-import static org.assertj.core.api.Assertions.*;
+import java.util.Arrays;
+import java.util.Optional;
+
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 
 @RequiredArgsConstructor
 public class AuthServiceIT extends IntegrationTestBase {
-    @Value("${security.jwt.header.refresh-token}")
-    private final String refreshHeader;
-    private final AuthService authService;
+    private final AuthServiceImpl authService;
     private final KafkaProducerService kafkaProducerService;
+    private final TokenService tokenService;
+    private final JwtService jwtService;
 
-    private static final String USERNAME = "Zoxka";
-    private static final String PASSWORD = "Zox617";
+    private final UserRepository userRepository;
+    private final UserProfileRepository userProfileRepository;
 
-    @BeforeEach
-    void setUp() {
-        doNothing().when(kafkaProducerService).sendMessageDto(anyString(), any(MessageDto.class));
+    private final StringRedisTemplate redisTemplate;
+    private final AppProperties appProperties;
+
+    @Test
+    void signUp_whenValidRequestData_shouldReturnAuthResponse() {
+        doNothing().when(kafkaProducerService).sendMessageDto(anyLong(), any(MessageDto.class));
+
+        var mockResponse = new MockHttpServletResponse();
+        var signUpRequest = new SignUpRequest("dante", "dante@gmail.com", "Dante123");
+
+        AuthResponse actual = authService.signUp(signUpRequest, mockResponse);
+
+        assertNotNull(actual);
+        assertThat(actual.accessToken()).isNotBlank();
+
+        Optional<User> optionalUser = userRepository.findByUsername("dante");
+        assertThat(optionalUser).isPresent();
+
+        User savedUser = optionalUser.orElseThrow();
+
+        Optional<UserProfile> userProfile = userProfileRepository.findById(savedUser.getId());
+        assertThat(userProfile).isPresent();
+
+        verify(kafkaProducerService).sendMessageDto(anyLong(), any(MessageDto.class));
+        verify(tokenService).generateTokens(savedUser.getUsername(), savedUser.getId(), mockResponse);
     }
 
     @Test
-    void signUp_whenValidRequestData_returnAuthResponse() {
-        SignUpRequest signUpRequest = new SignUpRequest("Sveta", "sveta@gmail.com", "Sveta123");
-        AuthResponse authResponse = authService.signUp(signUpRequest);
+    void signUp_whenUserServiceThrowException_shouldNotCallKafkaAndTokenService() {
+        var signUpRequest = new SignUpRequest("john_doe", "john.doe@example.com", "password123");
+        var mockResponse = new MockHttpServletResponse();
 
-        assertThat(authResponse).isNotNull();
-        assertThat(authResponse.accessToken()).isNotBlank();
-        assertThat(authResponse.refreshToken()).isNotBlank();
-
-        verify(kafkaProducerService).sendMessageDto(anyString(), any(MessageDto.class));
-    }
-
-    @Test
-    void signUp_whenUsernameAlreadyExists_throwDuplicateException() {
-        SignUpRequest signUpRequest = new SignUpRequest(USERNAME, "sveta@gmail.com", "Sveta123");
-
-        assertThatThrownBy(() -> authService.signUp(signUpRequest))
+        assertThatThrownBy(() -> authService.signUp(signUpRequest, mockResponse))
                 .isInstanceOf(DuplicateException.class)
-                .hasMessage("This username '%s' is already taken".formatted(USERNAME));
+                .hasMessage("Username %s is already taken".formatted(signUpRequest.username()));
 
-        verifyNoInteractions(kafkaProducerService);
+        verifyNoInteractions(kafkaProducerService, tokenService);
     }
 
     @Test
-    void signIn_whenValidCredentials_returnAuthResponse() {
-        SignInRequest signInRequest = new SignInRequest(USERNAME, PASSWORD);
+    void signUp_whenKafkaProducerServiceThrowException_shouldNotCallTokenService() {
+        doThrow(RuntimeException.class).when(kafkaProducerService).sendMessageDto(anyLong(), any(MessageDto.class));
 
-        AuthResponse authResponse = authService.signIn(signInRequest);
+        var signUpRequest = new SignUpRequest("dante", "dante@gmail.com", "Dante123");
+        var mockResponse = new MockHttpServletResponse();
 
-        assertThat(authResponse).isNotNull();
-        assertThat(authResponse.accessToken()).isNotBlank();
-        assertThat(authResponse.refreshToken()).isNotBlank();
+        assertThatThrownBy(() -> authService.signUp(signUpRequest, mockResponse))
+                .isInstanceOf(RuntimeException.class);
+
+        verify(kafkaProducerService).sendMessageDto(anyLong(), any(MessageDto.class));
+        verifyNoInteractions(tokenService);
     }
 
     @Test
-    void signIn_whenInvalidCredentials_throwAuthException() {
-        SignInRequest signInRequest = new SignInRequest(USERNAME, "InvalidPassword123");
+    void signIn_whenValidRequestData_shouldReturnAuthResponse() {
+        var signInRequest = new SignInRequest("john_doe", "password123");
+        var mockResponse = new MockHttpServletResponse();
 
-        assertThatThrownBy(() -> authService.signIn(signInRequest))
+        AuthResponse actual = authService.signIn(signInRequest, mockResponse);
+
+        assertThat(actual).isNotNull();
+        assertThat(actual.accessToken()).isNotBlank();
+
+        verify(tokenService).deleteRefreshToken(anyLong());
+        verify(tokenService).generateTokens(eq(signInRequest.username()), anyLong(), any(HttpServletResponse.class));
+    }
+
+    @Test
+    void signIn_whenInvalidRequestData_shouldThrowAuthException() {
+        var signInRequest = new SignInRequest("john_doe", "incorrect_password123");
+        var mockResponse = new MockHttpServletResponse();
+
+        assertThatThrownBy(() -> authService.signIn(signInRequest, mockResponse))
                 .isInstanceOf(AuthException.class)
                 .hasMessage("Invalid username or password");
+
+        verifyNoInteractions(tokenService);
     }
 
     @Test
-    void refreshTokens_whenValidRefreshToken_returnAuthResponse() {
-        AuthResponse authResponse = authService.signIn(new SignInRequest(USERNAME, PASSWORD));
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.addHeader(refreshHeader, authResponse.refreshToken());
+    void refreshToken_whenRefreshTokenIsNull_shouldThrowAuthException() {
+        var mockResponse = new MockHttpServletResponse();
 
-        AuthResponse refreshed = authService.refreshTokens(request);
-
-        assertThat(refreshed.accessToken()).isNotBlank();
-        assertThat(refreshed.refreshToken()).isNotBlank();
-        assertThat(refreshed.accessToken()).isNotEqualTo(authResponse.accessToken());
-        assertThat(refreshed.refreshToken()).isNotEqualTo(authResponse.refreshToken());
-    }
-
-    @Test
-    void refreshTokens_whenTokenMissing_throwAuthException() {
-        MockHttpServletRequest request = new MockHttpServletRequest();
-
-        assertThatThrownBy(() -> authService.refreshTokens(request))
+        assertThatThrownBy(() -> authService.refreshToken(null, mockResponse))
                 .isInstanceOf(AuthException.class)
-                .hasMessage("Refresh token not transformed");
+                .hasMessage("Refresh token not passed");
     }
 
     @Test
-    void refreshTokens_whenTokenIsEmpty_throwAuthException() {
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.addHeader(refreshHeader, "");
+    void refreshToken_whenTokenNotFoundInRedis_shouldThrowAuthException() {
+        var mockResponse = new MockHttpServletResponse();
+        String fakeToken = jwtService.generateRefreshToken("dante");
 
-        assertThatThrownBy(() -> authService.refreshTokens(request))
+        assertThatThrownBy(() -> authService.refreshToken(fakeToken, mockResponse))
                 .isInstanceOf(AuthException.class)
-                .hasMessage("Refresh token not transformed");
+                .hasMessage("Refresh token is revoked");
     }
 
     @Test
-    void refreshTokens_whenTokenInvalid_throwAuthException() {
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.addHeader(refreshHeader, "invalid.refresh.token");
+    void refreshToken_whenValidToken_shouldReturnNewTokens() {
+        var mockSignInResponse = new MockHttpServletResponse();
+        authService.signIn(new SignInRequest("john_doe", "password123"), mockSignInResponse);
 
-        assertThatThrownBy(() -> authService.refreshTokens(request))
-                .isInstanceOf(AuthException.class)
-                .hasMessage("Invalid or malformed token");
+        String setCookieHeader = mockSignInResponse.getHeader(HttpHeaders.SET_COOKIE);
+        assertThat(setCookieHeader).isNotBlank();
+
+        assert setCookieHeader != null;
+        String refreshToken = extractTokenFromCookie(setCookieHeader, appProperties.getSecurity().getJwt().getCookieName());
+
+        var mockRefreshResponse = new MockHttpServletResponse();
+        AuthResponse actual = authService.refreshToken(refreshToken, mockRefreshResponse);
+
+        assertThat(actual).isNotNull();
+        assertThat(actual.accessToken()).isNotBlank();
+
+        String oldTokenKey = appProperties.getSecurity().getJwt().getRedis().getRefreshTokenPrefix() + refreshToken;
+        assertThat(redisTemplate.hasKey(oldTokenKey)).isFalse();
+
+        String newSetCookieHeader = mockRefreshResponse.getHeader(HttpHeaders.SET_COOKIE);
+        assertThat(newSetCookieHeader).isNotBlank();
+    }
+
+    private String extractTokenFromCookie(String setCookieHeader, String cookieName) {
+        return Arrays.stream(setCookieHeader.split(";"))
+                .map(String::trim)
+                .filter(part -> part.startsWith("%s=".formatted(cookieName)))
+                .map(part -> part.substring(cookieName.length() + 1))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("Cookie %s not found in Set-Cookie header".formatted(cookieName)));
     }
 }
