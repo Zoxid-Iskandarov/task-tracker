@@ -145,7 +145,7 @@ public class UserServiceImpl implements UserService {
                     return userProfileRepository.save(profile);
                 })
                 .map(userProfileResponseMapper::toDto)
-                .orElseThrow(() -> new ObjectNotFoundException("Profile with id %d not found"));
+                .orElseThrow(() -> new ObjectNotFoundException("Profile with id %d not found".formatted(userId)));
     }
 
     @Override
