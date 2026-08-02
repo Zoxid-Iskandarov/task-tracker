@@ -11,7 +11,8 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @WithSecurityContext(factory = WithMockUserSecurityContextFactory.class)
 public @interface WithMockUser {
-    long id() default 1L;
-    String username() default "Zoxka";
-    String password() default "Zox617";
+    long id() default 2L;
+    String username() default "jane_smith";
+    String email() default "jane.smith@example.com";
+    String password() default "strongPass456";
 }
