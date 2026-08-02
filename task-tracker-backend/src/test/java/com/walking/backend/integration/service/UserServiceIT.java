@@ -1,108 +1,436 @@
 package com.walking.backend.integration.service;
 
 import com.walking.backend.domain.dto.auth.SignUpRequest;
-import com.walking.backend.domain.dto.user.UserResponse;
+import com.walking.backend.domain.dto.user.*;
 import com.walking.backend.domain.exception.DuplicateException;
+import com.walking.backend.domain.exception.InvalidFileException;
 import com.walking.backend.domain.exception.ObjectNotFoundException;
 import com.walking.backend.domain.model.User;
+import com.walking.backend.domain.model.UserProfile;
 import com.walking.backend.integration.IntegrationTestBase;
+import com.walking.backend.integration.annotation.WithMockUser;
+import com.walking.backend.props.AppProperties;
+import com.walking.backend.repository.UserProfileRepository;
 import com.walking.backend.repository.UserRepository;
 import com.walking.backend.service.UserService;
+import io.minio.*;
+import io.minio.errors.MinioException;
+import io.minio.messages.DeleteRequest;
+import io.minio.messages.Item;
 import lombok.RequiredArgsConstructor;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.access.AccessDeniedException;
+
+import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatCode;
 
+@WithMockUser
 @RequiredArgsConstructor
 public class UserServiceIT extends IntegrationTestBase {
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
     private final UserService userService;
+    private final UserRepository userRepository;
+    private final UserProfileRepository userProfileRepository;
 
-    private static final Long USER_ID = 1L;
-    private static final String USERNAME = "Zoxka";
-    private static final String EMAIL = "san781617@gmail.com";
+    private final MinioClient minioClient;
+    private final AppProperties appProperties;
 
     @Test
-    void getUserByUsername_whenUserExists_returnUserResponse() {
-        UserResponse userResponse = userService.getUserByUsername("Zoxka");
+    void searchUsersToInvite_whenUserIsBoardMember_shouldReturnFilteredPage() {
+        var pageable = PageRequest.of(0, 10);
 
-        assertNotNull(userResponse);
-        assertThat(userResponse.id()).isEqualTo(USER_ID);
-        assertThat(userResponse.username()).isEqualTo(USERNAME);
-        assertThat(userResponse.email()).isEqualTo(EMAIL);
+        Page<UserSearchResponse> actual = userService.searchUsersToInvite(1L, "john", pageable);
+
+        assertThat(actual.getContent()).isNotEmpty();
+        assertThat(actual.getContent())
+                .extracting(UserSearchResponse::username)
+                .contains("john_doe");
+        assertThat(actual.getContent())
+                .extracting(UserSearchResponse::username)
+                .doesNotContain("john_snow");
     }
 
     @Test
-    void getUserByUsername_whenUserNotFound_throwObjectNotFoundException() {
-        assertThrows(ObjectNotFoundException.class, () -> userService.getUserByUsername("non-existent-username"));
+    void searchUsersToInvite_whenUserIsNotBoardMember_shouldThrowAccessDeniedException() {
+        var pageable = PageRequest.of(0, 10);
+
+        assertThatThrownBy(() -> userService.searchUsersToInvite(99L, "john", pageable))
+                .isInstanceOf(AccessDeniedException.class);
     }
 
     @Test
-    void getUserById_whenUserExists_returnUser() {
-        User user = userService.getUserById(USER_ID);
+    void searchUsersToInvite_whenNoUsersMatchQuery_shouldReturnEmptyPage() {
+        var pageable = PageRequest.of(0, 10);
 
-        assertNotNull(user);
-        assertThat(user.getId()).isEqualTo(USER_ID);
-        assertThat(user.getUsername()).isEqualTo(USERNAME);
-        assertThat(user.getEmail()).isEqualTo(EMAIL);
+        Page<UserSearchResponse> result = userService.searchUsersToInvite(
+                1L, "nonexistent_user", pageable);
+
+        assertThat(result.getContent()).isEmpty();
+        assertThat(result.getTotalElements()).isZero();
     }
 
     @Test
-    void getUserById_whenUserNotFound_throwObjectNotFoundException() {
-        assertThrows(ObjectNotFoundException.class, () -> userService.getUserById(1000L));
+    void getCurrentUserProfileById_whenUserExists_shouldReturnProfile() {
+        UserProfileResponse actual = userService.getCurrentUserProfileById(2L);
+
+        assertThat(actual).isNotNull();
+        assertThat(actual.displayName()).isEqualTo("Jane Smith");
     }
 
     @Test
-    void createUser_whenValidRequestData_returnUserResponse() {
-        SignUpRequest signUpRequest = new SignUpRequest("Sveta", "sveta@gmail.com", "Sveta123");
+    void getCurrentUserProfileById_whenCalledTwice_shouldUseCache() {
+        UserProfileResponse first = userService.getCurrentUserProfileById(2L);
 
-        UserResponse userResponse = userService.createUser(signUpRequest);
+        userProfileRepository.findById(2L)
+                .ifPresent(profile -> {
+                    profile.setDisplayName("MODIFIED NAME");
+                    userProfileRepository.save(profile);
+                });
 
-        assertNotNull(userResponse);
-        assertNotNull(userResponse.id());
-        assertThat(userResponse.username()).isEqualTo(signUpRequest.username());
-        assertThat(userResponse.email()).isEqualTo(signUpRequest.email());
+        UserProfileResponse second = userService.getCurrentUserProfileById(2L);
+
+        assertThat(second.displayName()).isEqualTo(first.displayName());
+        assertThat(second.displayName()).isNotEqualTo("MODIFIED NAME");
     }
 
     @Test
-    void createUser_whenUsernameAlreadyExists_throwDuplicateException() {
-        SignUpRequest signUpRequest = new SignUpRequest(USERNAME, "sveta@gmail.com", "Sveta123");
-
-        assertThrows(DuplicateException.class, () -> userService.createUser(signUpRequest));
+    void getUserById_whenUserNotFound_shouldThrowObjectNotFoundException() {
+        assertThatThrownBy(() -> userService.getUserById(99L))
+                .isInstanceOf(ObjectNotFoundException.class)
+                .hasMessage("User with id 99 not found");
     }
 
     @Test
-    void createUser_whenEmailAlreadyExists_throwDuplicateException() {
-        SignUpRequest signUpRequest = new SignUpRequest("Sveta", EMAIL, "Sveta123");
+    void getAssigneeByTaskIds_whenTasksHaveAssignees_shouldReturnGroupedMap() {
+        Set<Long> taskIds = Set.of(1L, 2L, 3L);
 
-        assertThrows(DuplicateException.class, () -> userService.createUser(signUpRequest));
+        Map<Long, List<UserShortResponse>> result = userService.getAssigneeByTaskIds(taskIds);
+
+        // Task 1:
+        assertThat(result).containsKey(1L);
+        assertThat(result.get(1L)).hasSize(2);
+        assertThat(result.get(1L))
+                .extracting(UserShortResponse::id)
+                .containsExactlyInAnyOrder(1L, 2L);
+
+        // Task 2:
+        assertThat(result).containsKey(2L);
+        assertThat(result.get(2L)).hasSize(1);
+        assertThat(result.get(2L).getFirst().id()).isEqualTo(3L);
+
+        // Task 3:
+        assertThat(result).doesNotContainKey(3L);
+
+        UserShortResponse assignee = result.get(1L).stream()
+                .filter(u -> u.id() == 1L)
+                .findFirst()
+                .orElseThrow();
+        assertThat(assignee.username()).isEqualTo("john_doe");
+        assertThat(assignee.displayName()).isEqualTo("John Doe");
     }
 
     @Test
-    void createUser_whenValidRequest_passwordIsEncoded() {
-        SignUpRequest signUpRequest = new SignUpRequest("Sveta", "sveta@gmail.com", "Sveta123");
+    void createUser_whenUsernameAlreadyExists_shouldThrowDuplicateException() {
+        var signUpRequest = new SignUpRequest("john_doe", "some@gmail.com", "Password123");
 
-        UserResponse userResponse = userService.createUser(signUpRequest);
-
-        userRepository.findById(userResponse.id()).ifPresent(savedUser -> {
-            assertThat(savedUser.getPassword()).isNotEqualTo(signUpRequest.password());
-            assertTrue(passwordEncoder.matches(signUpRequest.password(), savedUser.getPassword()));
-        });
+        assertThatThrownBy(() -> userService.createUser(signUpRequest))
+                .isInstanceOf(DuplicateException.class)
+                .hasMessage("Username %s is already taken".formatted(signUpRequest.username()));
     }
 
     @Test
-    void createUser_whenUsernameExists_userIsNotSaved() {
-        long usersBefore = userRepository.count();
+    void createUser_whenEmailAlreadyExists_shouldThrowDuplicateException() {
+        var signUpRequest = new SignUpRequest("some_user", "john.doe@example.com", "Password123");
 
-        SignUpRequest signUpRequest = new SignUpRequest(USERNAME, "sveta@gmail.com", "Sveta123");
+        assertThatThrownBy(() -> userService.createUser(signUpRequest))
+                .isInstanceOf(DuplicateException.class)
+                .hasMessage("Email %s is already taken".formatted(signUpRequest.email()));
+    }
 
-        assertThrows(DuplicateException.class, () -> userService.createUser(signUpRequest));
+    @Test
+    void createUser_whenValidRequestData_shouldReturnUserResponse() {
+        var signUpRequest = new SignUpRequest("dante", "dante@gmail.com", "Password123");
 
-        long usersAfter = userRepository.count();
+        UserResponse actual = userService.createUser(signUpRequest);
 
-        assertEquals(usersBefore, usersAfter);
+        assertThat(actual.username()).isEqualTo(signUpRequest.username());
+        assertThat(actual.email()).isEqualTo(signUpRequest.email());
+
+        Optional<User> userOptional = userRepository.findByUsername(actual.username());
+        assertThat(userOptional).isPresent();
+
+        Optional<UserProfile> profileOptional = userProfileRepository.findById(userOptional.get().getId());
+        assertThat(profileOptional).isPresent();
+    }
+
+    @Test
+    void getUserProfileById_whenProfileNotFound_shouldThrowObjectNotFoundException() {
+        Long userId = 99L;
+
+        assertThatThrownBy(() -> userService.getUserProfileById(userId))
+                .isInstanceOf(ObjectNotFoundException.class)
+                .hasMessage("User with id %d not found".formatted(userId));
+    }
+
+    @Test
+    void getUserProfileById_whenProfileExists_shouldReturnUserPublicProfileResponse() {
+        UserPublicProfileResponse actual = userService.getUserProfileById(1L);
+
+        assertThat(actual).isNotNull();
+        assertThat(actual.username()).isEqualTo("john_doe");
+        assertThat(actual.displayName()).isEqualTo("John Doe");
+    }
+
+    @Test
+    void getUserProfileById_whenCalledTwice_shouldUseCache() {
+        UserPublicProfileResponse first = userService.getUserProfileById(1L);
+
+        userProfileRepository.findById(1L)
+                .ifPresent(profile -> {
+                    profile.setDisplayName("MODIFIED PUBLIC NAME");
+                    userProfileRepository.save(profile);
+                });
+
+        UserPublicProfileResponse second = userService.getUserProfileById(1L);
+
+        assertThat(second.displayName()).isEqualTo(first.displayName());
+        assertThat(second.displayName()).isNotEqualTo("MODIFIED PUBLIC NAME");
+    }
+
+    @Test
+    void updateUserProfile_whenProfileExists_shouldUpdateAndReturnUserProfileResponse() {
+        var updateUserProfileRequest = new UpdateUserProfileRequest("New Display Name", "Updated bio");
+
+        UserProfileResponse actual = userService.updateUserProfile(1L, updateUserProfileRequest);
+
+        assertThat(actual.displayName()).isEqualTo(updateUserProfileRequest.displayName());
+        assertThat(actual.bio()).isEqualTo(updateUserProfileRequest.bio());
+
+        UserProfile saved = userProfileRepository.findById(1L).orElseThrow();
+
+        assertThat(saved.getDisplayName()).isEqualTo(updateUserProfileRequest.displayName());
+        assertThat(saved.getBio()).isEqualTo(updateUserProfileRequest.bio());
+    }
+
+    @Test
+    void updateUserProfile_whenProfileNotFound_shouldThrowObjectNotFoundException() {
+        var updateUserProfileRequest = new UpdateUserProfileRequest("Name", "Bio");
+
+        assertThatThrownBy(() -> userService.updateUserProfile(99L, updateUserProfileRequest))
+                .isInstanceOf(ObjectNotFoundException.class)
+                .hasMessageContaining("Profile with id 99 not found");
+    }
+
+    @Test
+    void updateUserProfile_whenCalled_shouldEvictAllCaches() {
+        userService.getCurrentUserProfileById(1L);
+        userService.getUserProfileById(1L);
+        userService.getUserShortById(1L);
+
+        var updateUserProfileRequest = new UpdateUserProfileRequest("Evicted Name", "Evicted bio");
+        userService.updateUserProfile(1L, updateUserProfileRequest);
+
+        userProfileRepository.findById(1L)
+                .ifPresent(profile -> {
+                    profile.setDisplayName("DB DIRECT NAME");
+                    userProfileRepository.save(profile);
+                });
+
+        UserProfileResponse refreshed = userService.getCurrentUserProfileById(1L);
+        assertThat(refreshed.displayName()).isEqualTo("DB DIRECT NAME");
+    }
+
+    @Test
+    void uploadAvatar_whenValidImage_shouldUploadAndSaveUrl() {
+        var file = new MockMultipartFile(
+                "file", "avatar.png", "image/png", "fake-image-content".getBytes());
+
+        UserProfileResponse actual = userService.uploadAvatar(1L, file);
+
+        assertThat(actual.avatarUrl()).isNotBlank();
+
+        UserProfile saved = userProfileRepository.findById(1L).orElseThrow();
+
+        assertThat(saved.getAvatarUrl()).isEqualTo(actual.avatarUrl());
+        assertThat(avatarExists(saved.getAvatarUrl())).isTrue();
+    }
+
+    @Test
+    void uploadAvatar_whenAvatarAlreadyExists_shouldDeleteOldAndUploadNew() {
+        MockMultipartFile firstFile = new MockMultipartFile(
+                "file", "first.png", "image/png", "first-content".getBytes());
+        UserProfileResponse first = userService.uploadAvatar(1L, firstFile);
+        String oldAvatarUrl = first.avatarUrl();
+
+        MockMultipartFile secondFile = new MockMultipartFile(
+                "file", "second.png", "image/png", "second-content".getBytes());
+        UserProfileResponse second = userService.uploadAvatar(1L, secondFile);
+
+        assertThat(avatarExists(oldAvatarUrl)).isFalse();
+        assertThat(avatarExists(second.avatarUrl())).isTrue();
+
+        UserProfile saved = userProfileRepository.findById(1L).orElseThrow();
+        assertThat(saved.getAvatarUrl()).isEqualTo(second.avatarUrl());
+    }
+
+    @Test
+    void uploadAvatar_whenFileIsEmpty_shouldThrowInvalidFileException() {
+        MockMultipartFile emptyFile = new MockMultipartFile(
+                "file", "empty.png", "image/png", new byte[0]);
+
+        assertThatThrownBy(() -> userService.uploadAvatar(1L, emptyFile))
+                .isInstanceOf(InvalidFileException.class)
+                .hasMessage("File is empty");
+    }
+
+    @Test
+    void uploadAvatar_whenFileIsNull_shouldThrowInvalidFileException() {
+        assertThatThrownBy(() -> userService.uploadAvatar(1L, null))
+                .isInstanceOf(InvalidFileException.class)
+                .hasMessage("File is empty");
+    }
+
+    @Test
+    void uploadAvatar_whenFileIsNotImage_shouldThrowInvalidFileException() {
+        MockMultipartFile pdfFile = new MockMultipartFile(
+                "file", "doc.pdf", "application/pdf", "pdf-content".getBytes());
+
+        assertThatThrownBy(() -> userService.uploadAvatar(1L, pdfFile))
+                .isInstanceOf(InvalidFileException.class)
+                .hasMessage("File is not an image");
+    }
+
+    @Test
+    void uploadAvatar_whenProfileNotFound_shouldThrowObjectNotFoundException() {
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "avatar.png", "image/png", "content".getBytes());
+
+        assertThatThrownBy(() -> userService.uploadAvatar(99L, file))
+                .isInstanceOf(ObjectNotFoundException.class)
+                .hasMessageContaining("Profile with id 99 not found");
+    }
+
+    @Test
+    void uploadAvatar_whenCalled_shouldEvictAllCaches() {
+        userService.getCurrentUserProfileById(1L);
+        userService.getUserProfileById(1L);
+        userService.getUserShortById(1L);
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "cache-test.png", "image/png", "content".getBytes());
+        userService.uploadAvatar(1L, file);
+
+        userProfileRepository.findById(1L)
+                .ifPresent(p -> {
+                    p.setDisplayName("FRESH FROM DB");
+                    userProfileRepository.save(p);
+                });
+
+        UserProfileResponse refreshed = userService.getCurrentUserProfileById(1L);
+        assertThat(refreshed.displayName()).isEqualTo("FRESH FROM DB");
+    }
+
+    @Test
+    void deleteAvatar_whenAvatarExists_shouldDeleteFromMinioAndSetNull() {
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "to-delete.png", "image/png", "content".getBytes());
+        UserProfileResponse uploaded = userService.uploadAvatar(1L, file);
+        String avatarUrl = uploaded.avatarUrl();
+
+        userService.deleteAvatar(1L);
+
+        assertThat(avatarExists(avatarUrl)).isFalse();
+
+        UserProfile saved = userProfileRepository.findById(1L).orElseThrow();
+        assertThat(saved.getAvatarUrl()).isNull();
+    }
+
+    @Test
+    void deleteAvatar_whenNoAvatar_shouldNotCallFileStorage() {
+        userProfileRepository.findById(3L)
+                .ifPresent(p -> {
+                    p.setAvatarUrl(null);
+                    userProfileRepository.save(p);
+                });
+
+        assertThatCode(() -> userService.deleteAvatar(3L))
+                .doesNotThrowAnyException();
+
+        UserProfile saved = userProfileRepository.findById(3L).orElseThrow();
+        assertThat(saved.getAvatarUrl()).isNull();
+    }
+
+    @Test
+    void deleteAvatar_whenProfileNotFound_shouldThrowObjectNotFoundException() {
+        assertThatThrownBy(() -> userService.deleteAvatar(99L))
+                .isInstanceOf(ObjectNotFoundException.class)
+                .hasMessageContaining("Profile with id 99 not found");
+    }
+
+    @Test
+    void deleteAvatar_whenCalled_shouldEvictAllCaches() {
+        userService.getCurrentUserProfileById(1L);
+        userService.getUserProfileById(1L);
+        userService.getUserShortById(1L);
+
+        userService.deleteAvatar(1L);
+
+        userProfileRepository.findById(1L)
+                .ifPresent(p -> {
+                    p.setDisplayName("AFTER DELETE AVATAR");
+                    userProfileRepository.save(p);
+                });
+
+        UserProfileResponse refreshed = userService.getCurrentUserProfileById(1L);
+        assertThat(refreshed.displayName()).isEqualTo("AFTER DELETE AVATAR");
+    }
+
+    @AfterEach
+    void clearAvatarBucket() {
+        String bucket = appProperties.getMinio().getBucketAvatar();
+
+        try {
+            List<String> objectNames = new ArrayList<>();
+            Iterable<Result<Item>> objects = minioClient.listObjects(ListObjectsArgs.builder()
+                    .bucket(bucket)
+                    .build());
+
+            for (Result<Item> object : objects) {
+                objectNames.add(object.get().objectName());
+            }
+
+            if (!objectNames.isEmpty()) {
+                List<DeleteRequest.Object> deleteObjects = objectNames.stream()
+                        .map(DeleteRequest.Object::new)
+                        .toList();
+
+                minioClient.removeObjects(RemoveObjectsArgs.builder()
+                        .bucket(bucket)
+                        .objects(deleteObjects)
+                        .build());
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to clean up MinIO bucket: " + bucket, e);
+        }
+    }
+
+    private boolean avatarExists(String objectName) {
+        try {
+            minioClient.statObject(StatObjectArgs.builder()
+                    .bucket(appProperties.getMinio().getBucketAvatar())
+                    .object(objectName)
+                    .build());
+
+            return true;
+        } catch (MinioException ignore) {
+        }
+
+        return false;
     }
 }
