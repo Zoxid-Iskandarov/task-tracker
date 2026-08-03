@@ -1,8 +1,10 @@
 package com.walking.backend.integration;
 
 import com.redis.testcontainers.RedisContainer;
+import com.walking.backend.audit.service.ActivityService;
 import com.walking.backend.security.authentication.TokenService;
 import com.walking.backend.service.KafkaProducerService;
+import com.walking.backend.storage.service.ResourceCleanupService;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -65,4 +67,10 @@ public abstract class IntegrationTestBase {
 
     @MockitoSpyBean
     private TokenService tokenService;
+
+    @MockitoSpyBean
+    private ActivityService activityService;
+
+    @MockitoSpyBean
+    private ResourceCleanupService resourceCleanupService;
 }

@@ -48,14 +48,19 @@ VALUES (3,
 
 SELECT setval('users_id_seq', (SELECT MAX(id) FROM users));
 
+-- Board 1: jane_smith (2) - OWNER; john_snow (3) - EDITOR
+-- Board 2: john_doe (1) - OWNER, jane_smith (2) - VIEWER
 INSERT INTO board (id, name, created, updated)
-VALUES (1, 'Test Board', NOW(), NOW());
+VALUES (1, 'Test Board', NOW(), NOW()),
+       (2, 'Second Test Board', NOW(), NOW());
 
 SELECT setval('board_id_seq', (SELECT MAX(id) FROM board));
 
 INSERT INTO board_member (board_id, user_id, role, joined)
 VALUES (1, 2, 'OWNER', NOW()),
-       (1, 3, 'EDITOR', NOW());
+       (1, 3, 'EDITOR', NOW()),
+       (2, 1, 'OWNER', NOW()),
+       (2, 2, 'VIEWER', NOW());
 
 INSERT INTO section (id, name, board_id, created, updated)
 VALUES (1, 'To Do', 1, NOW(), NOW());
@@ -74,6 +79,6 @@ VALUES (1, 'Test Task With Two Assignees', 'Description 1', FALSE, 1.0, 1, NOW()
 SELECT setval('task_id_seq', COALESCE((SELECT MAX(id) FROM task), 0));
 
 INSERT INTO task_assignee (task_id, user_id)
-VALUES (1, 1),  -- john_doe
-       (1, 2),  -- jane_smith
-       (2, 3);  -- john_snow
+VALUES (1, 1), -- john_doe
+       (1, 2), -- jane_smith
+       (2, 3); -- john_snow
