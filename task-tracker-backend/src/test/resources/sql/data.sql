@@ -82,3 +82,8 @@ INSERT INTO task_assignee (task_id, user_id)
 VALUES (1, 1), -- john_doe
        (1, 2), -- jane_smith
        (2, 3); -- john_snow
+
+INSERT INTO label (id, name, colour, board_id)
+VALUES (1, 'Bug', 'RED', 1);
+
+SELECT setval('label_id_seq', COALESCE((SELECT MAX(id) FROM label), 0));
