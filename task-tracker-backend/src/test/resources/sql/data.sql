@@ -87,3 +87,8 @@ INSERT INTO label (id, name, colour, board_id)
 VALUES (1, 'Bug', 'RED', 1);
 
 SELECT setval('label_id_seq', COALESCE((SELECT MAX(id) FROM label), 0));
+
+INSERT INTO task_comment (id, task_id, author_id, content, created, updated)
+VALUES (1, 1, 1, 'Test comment content', NOW(), NOW());
+
+SELECT setval('task_comment_id_seq', COALESCE((SELECT MAX(id) FROM task_comment), 0));
