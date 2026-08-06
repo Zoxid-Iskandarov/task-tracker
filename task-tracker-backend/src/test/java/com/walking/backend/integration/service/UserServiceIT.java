@@ -9,14 +9,11 @@ import com.walking.backend.domain.model.User;
 import com.walking.backend.domain.model.UserProfile;
 import com.walking.backend.integration.IntegrationTestBase;
 import com.walking.backend.integration.annotation.WithMockUser;
+import com.walking.backend.integration.util.MinioTestHelper;
 import com.walking.backend.props.AppProperties;
 import com.walking.backend.repository.UserProfileRepository;
 import com.walking.backend.repository.UserRepository;
 import com.walking.backend.service.UserService;
-import io.minio.*;
-import io.minio.errors.MinioException;
-import io.minio.messages.DeleteRequest;
-import io.minio.messages.Item;
 import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -25,7 +22,10 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.access.AccessDeniedException;
 
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -38,7 +38,7 @@ public class UserServiceIT extends IntegrationTestBase {
     private final UserRepository userRepository;
     private final UserProfileRepository userProfileRepository;
 
-    private final MinioClient minioClient;
+    private final MinioTestHelper minioTestHelper;
     private final AppProperties appProperties;
 
     @Test
@@ -393,44 +393,10 @@ public class UserServiceIT extends IntegrationTestBase {
 
     @AfterEach
     void clearAvatarBucket() {
-        String bucket = appProperties.getMinio().getBucketAvatar();
-
-        try {
-            List<String> objectNames = new ArrayList<>();
-            Iterable<Result<Item>> objects = minioClient.listObjects(ListObjectsArgs.builder()
-                    .bucket(bucket)
-                    .build());
-
-            for (Result<Item> object : objects) {
-                objectNames.add(object.get().objectName());
-            }
-
-            if (!objectNames.isEmpty()) {
-                List<DeleteRequest.Object> deleteObjects = objectNames.stream()
-                        .map(DeleteRequest.Object::new)
-                        .toList();
-
-                minioClient.removeObjects(RemoveObjectsArgs.builder()
-                        .bucket(bucket)
-                        .objects(deleteObjects)
-                        .build());
-            }
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to clean up MinIO bucket: " + bucket, e);
-        }
+        minioTestHelper.clearBucket(appProperties.getMinio().getBucketAvatar());
     }
 
     private boolean avatarExists(String objectName) {
-        try {
-            minioClient.statObject(StatObjectArgs.builder()
-                    .bucket(appProperties.getMinio().getBucketAvatar())
-                    .object(objectName)
-                    .build());
-
-            return true;
-        } catch (MinioException ignore) {
-        }
-
-        return false;
+        return minioTestHelper.objectExists(appProperties.getMinio().getBucketAvatar(), objectName);
     }
 }
