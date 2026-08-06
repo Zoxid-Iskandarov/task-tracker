@@ -92,3 +92,10 @@ INSERT INTO task_comment (id, task_id, author_id, content, created, updated)
 VALUES (1, 1, 1, 'Test comment content', NOW(), NOW());
 
 SELECT setval('task_comment_id_seq', COALESCE((SELECT MAX(id) FROM task_comment), 0));
+
+INSERT INTO user_activity (id, user_id, username, board_id, board_name, activity_type, description, created)
+VALUES (1, 2, 'jane_smith', 1, 'Test Board', 'BOARD_CREATED', 'Created board Test Board', NOW()),
+       (2, 3, 'john_snow', 1, 'Test Board', 'MEMBER_ADDED', 'Added member john_snow', NOW()),
+       (3, 1, 'john_doe', 2, 'Second Test Board', 'BOARD_CREATED', 'Created board Second Test Board', NOW());
+
+SELECT setval('user_activity_id_seq', COALESCE((SELECT MAX(id) FROM user_activity), 0));
