@@ -99,3 +99,8 @@ VALUES (1, 2, 'jane_smith', 1, 'Test Board', 'BOARD_CREATED', 'Created board Tes
        (3, 1, 'john_doe', 2, 'Second Test Board', 'BOARD_CREATED', 'Created board Second Test Board', NOW());
 
 SELECT setval('user_activity_id_seq', COALESCE((SELECT MAX(id) FROM user_activity), 0));
+
+INSERT INTO task_attachment (id, task_id, uploaded_by, file_name, file_path, content_type, file_size, created)
+VALUES (1, 1, 1, 'spec.pdf', 'attachments/1/spec.pdf', 'application/pdf', 2048, NOW());
+
+SELECT setval('task_attachment_id_seq', COALESCE((SELECT MAX(id) FROM task_attachment), 0));
