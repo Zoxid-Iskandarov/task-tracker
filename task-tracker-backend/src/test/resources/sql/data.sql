@@ -52,7 +52,8 @@ SELECT setval('users_id_seq', (SELECT MAX(id) FROM users));
 -- Board 2: john_doe (1) - OWNER, jane_smith (2) - VIEWER
 INSERT INTO board (id, name, created, updated)
 VALUES (1, 'Test Board', NOW(), NOW()),
-       (2, 'Second Test Board', NOW(), NOW());
+       (2, 'Second Test Board', NOW(), NOW()),
+       (3, 'Third Board', NOW(), NOW());
 
 SELECT setval('board_id_seq', (SELECT MAX(id) FROM board));
 
@@ -60,10 +61,12 @@ INSERT INTO board_member (board_id, user_id, role, joined)
 VALUES (1, 2, 'OWNER', NOW()),
        (1, 3, 'EDITOR', NOW()),
        (2, 1, 'OWNER', NOW()),
-       (2, 2, 'VIEWER', NOW());
+       (2, 2, 'VIEWER', NOW()),
+       (3, 2, 'OWNER', NOW());
 
 INSERT INTO section (id, name, board_id, created, updated)
-VALUES (1, 'To Do', 1, NOW(), NOW());
+VALUES (1, 'To Do', 1, NOW(), NOW()),
+       (2, 'In Progress', 1, NOW(), NOW());
 
 SELECT setval('section_id_seq', COALESCE((SELECT MAX(id) FROM section), 0));
 
@@ -84,7 +87,8 @@ VALUES (1, 1), -- john_doe
        (2, 3); -- john_snow
 
 INSERT INTO label (id, name, colour, board_id)
-VALUES (1, 'Bug', 'RED', 1);
+VALUES (1, 'Bug', 'RED', 1),
+       (3, 'Board 3 Label', 'GREEN', 3);
 
 SELECT setval('label_id_seq', COALESCE((SELECT MAX(id) FROM label), 0));
 
