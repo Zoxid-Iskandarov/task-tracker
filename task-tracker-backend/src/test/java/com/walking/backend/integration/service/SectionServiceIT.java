@@ -58,16 +58,16 @@ public class SectionServiceIT extends IntegrationTestBase {
 
     @Test
     void createSection_whenValidRequestAndUserCanEdit_shouldCreateSection() {
-        var request = new CreateSectionRequest("In Progress", 1L);
+        var request = new CreateSectionRequest("Backlog", 1L);
 
         SectionResponse response = sectionService.createSection(request);
 
         assertThat(response).isNotNull();
-        assertThat(response.name()).isEqualTo("In Progress");
+        assertThat(response.name()).isEqualTo("Backlog");
 
         Optional<Section> saved = sectionRepository.findById(response.id());
         assertThat(saved).isPresent();
-        assertThat(saved.get().getName()).isEqualTo("In Progress");
+        assertThat(saved.get().getName()).isEqualTo("Backlog");
     }
 
     @Test

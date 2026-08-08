@@ -47,10 +47,10 @@ public class BoardServiceIT extends IntegrationTestBase {
         Page<BoardResponse> actual = boardService.getBoards(2L, pageable);
 
         assertThat(actual.getContent()).isNotEmpty();
-        assertThat(actual.getContent()).hasSize(2);
+        assertThat(actual.getContent()).hasSize(3);
         assertThat(actual.getContent())
                 .extracting(BoardResponse::name)
-                .contains("Test Board", "Second Test Board");
+                .contains("Test Board", "Second Test Board", "Third Board");
     }
 
     @Test
